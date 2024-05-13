@@ -198,7 +198,10 @@ def normSimpCore (goal : MVarId)
         let (ctx, simprocs) ←
           addLocalRules localRules ctx.toContext ctx.simprocs
             (isSimpAll := false)
-        Aesop.simpGoalWithAllHypotheses goal ctx simprocs
+        -- TODO pass negativeCache upwards, give it to this as param
+        pure (<- Aesop.simpGoalWithAllHypotheses goal ctx simprocs).fst
+
+
 
     -- It can happen that simp 'solves' the goal but leaves some mvars
     -- unassigned. In this case, we treat the goal as unchanged.

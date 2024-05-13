@@ -82,24 +82,24 @@ def addLetDeclsToSimpTheoremsUnlessZetaDelta (ctx : Simp.Context) :
 def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
     (simplifyTarget : Bool := true) (fvarIdsToSimp : Array FVarId := #[])
-    (stats : Simp.Stats := {}) : MetaM SimpResult := do
+    (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}): MetaM (SimpResult × Simp.NegativeCache) := do
   let mvarIdOld := mvarId
   let ctx := { ctx with config.failIfUnchanged := false }
-  let (result, { usedTheorems := usedSimps, .. }) ←
+  let (result, { usedTheorems := usedSimps, .. }, negativeCache) ←
     Meta.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
       stats
   if let some (_, mvarId) := result then
     if mvarId == mvarIdOld then
-      return .unchanged mvarId
+      return (.unchanged mvarId, negativeCache)
     else
-      return .simplified mvarId usedSimps
+      return (.simplified mvarId usedSimps, negativeCache)
   else
-    return .solved usedSimps
+    return (.solved usedSimps, negativeCache)
 
 def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
-    (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) :
-    MetaM SimpResult :=
+    (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}):
+    MetaM (SimpResult × Simp.NegativeCache):=
   mvarId.withContext do
     let lctx ← getLCtx
     let mut fvarIdsToSimp := Array.mkEmpty lctx.decls.size
@@ -109,7 +109,7 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
       fvarIdsToSimp := fvarIdsToSimp.push ldecl.fvarId
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
     Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
-      stats
+      stats negativeCache
 
 def simpAll (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) :
