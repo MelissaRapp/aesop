@@ -87,7 +87,7 @@ def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
   let ctx := { ctx with config.failIfUnchanged := false }
   let (result, { usedTheorems := usedSimps, .. }, negativeCache) ←
     Meta.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
-      stats
+      stats negativeCache
   if let some (_, mvarId) := result then
     if mvarId == mvarIdOld then
       return (.unchanged mvarId, negativeCache)

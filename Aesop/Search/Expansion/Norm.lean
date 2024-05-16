@@ -74,6 +74,20 @@ def withNormTraceNode (ruleName : DisplayRuleName) (k : NormM NormRuleResult) :
       let emoji := exceptRuleResultToEmoji (·.toEmoji) r
       return m!"{emoji} {ruleName}"
 
+--TODO probably just move negativeCache into NormM and remove this later
+@[inline, always_inline]
+def withNormTraceNodeNegativeCache (ruleName : DisplayRuleName) (k : NormM (NormRuleResult × Simp.NegativeCache)) :
+    NormM (NormRuleResult × Simp.NegativeCache ):=
+  withAesopTraceNode .steps fmt do
+    let (result, negativeCache) ← k
+    if let some newGoal := result.newGoal? then
+      aesop_trace[steps] newGoal
+    return (result, negativeCache)
+  where
+    fmt (r : Except Exception (NormRuleResult × Simp.NegativeCache)) : NormM MessageData := do
+      let emoji := exceptRuleResultToEmoji (·.fst.toEmoji) r
+      return m!"{emoji} {ruleName}"
+
 def mkNormRuleTacticInvocation (ruleName : RuleName)
     (scriptBuilder? : Option RuleTacScriptBuilder)
     (preGoal : MVarId) (outGoal? : Option GoalWithMVars)
@@ -183,23 +197,24 @@ def SimpResult.toNormRuleResult (ruleName : DisplayRuleName)
         return .error ruleName
 
 def normSimpCore (goal : MVarId)
-    (goalMVars : HashSet MVarId) : NormM NormRuleResult := do
+    (goalMVars : HashSet MVarId) (negativeCache: Simp.NegativeCache): NormM (NormRuleResult × Simp.NegativeCache) := do
   let ctx := (← read).normSimpContext
   goal.withContext do
     let preState ← saveState
     let localRules := (← read).ruleSet.localNormSimpRules
-    let result ←
+    let (result, negativeCache ) ←
       if ctx.useHyps then
         let (ctx, simprocs) ←
           addLocalRules localRules ctx.toContext ctx.simprocs
             (isSimpAll := true)
-        Aesop.simpAll goal ctx simprocs
+        let (result) <- Aesop.simpAll goal ctx simprocs
+        pure (result, negativeCache)
       else
         let (ctx, simprocs) ←
           addLocalRules localRules ctx.toContext ctx.simprocs
             (isSimpAll := false)
         -- TODO pass negativeCache upwards, give it to this as param
-        pure (<- Aesop.simpGoalWithAllHypotheses goal ctx simprocs).fst
+        Aesop.simpGoalWithAllHypotheses goal ctx simprocs (negativeCache := negativeCache)
 
 
 
@@ -222,7 +237,8 @@ def normSimpCore (goal : MVarId)
         pure result
 
     let postState ← saveState
-    result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
+    let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
+    pure (normResult, negativeCache)
 where
   addLocalRules (localRules : Array LocalNormSimpRule) (ctx : Simp.Context)
       (simprocs : Simp.SimprocsArray) (isSimpAll : Bool) :
@@ -235,7 +251,7 @@ where
 
 @[inline, always_inline]
 def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
-    (x : NormM NormRuleResult) : NormM NormRuleResult := do
+    (x : NormM (NormRuleResult )) : NormM NormRuleResult := do
   if ! (← Check.rules.isEnabled) then
     x
   else
@@ -256,14 +272,39 @@ def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
         throwError "{Check.rules.name}: {name} solved the goal"
     return result
 
-def normSimp (goal : MVarId) (goalMVars : HashSet MVarId) :
-    NormM NormRuleResult := do
+--TODO probably just move negativeCache into NormM and remove this later
+@[inline, always_inline]
+def checkSimpNegativeCache (name : String) (mayCloseGoal : Bool) (goal : MVarId)
+    (x : NormM (NormRuleResult × Simp.NegativeCache)) : NormM (NormRuleResult × Simp.NegativeCache):= do
+  if ! (← Check.rules.isEnabled) then
+    x
+  else
+    let preMetaState ← saveState
+    let (result, negativeCache) ← x
+    let newGoal? := result.newGoal?
+    let postMetaState ← saveState
+    let introduced :=
+        (← getIntroducedExprMVars preMetaState postMetaState).filter
+        (some · != newGoal?)
+    unless introduced.isEmpty do throwError
+        "{Check.rules.name}: {name} introduced mvars:{introduced.map (·.name)}"
+    let assigned :=
+        (← getAssignedExprMVars preMetaState postMetaState).filter (· != goal)
+    unless assigned.isEmpty do throwError
+        "{Check.rules.name}: {name} assigned mvars:{introduced.map (·.name)}"
+    if ← pure (! mayCloseGoal && newGoal?.isNone) <&&> goal.isAssigned then
+        throwError "{Check.rules.name}: {name} solved the goal"
+    return (result, negativeCache)
+
+
+def normSimp (goal : MVarId) (goalMVars : HashSet MVarId) (negativeCache : Simp.NegativeCache ) :
+    NormM (NormRuleResult × Simp.NegativeCache):= do
   profilingRule .normSimp (wasSuccessful := λ _ => true) do
-    checkSimp "norm simp" (mayCloseGoal := true) goal do
+    checkSimpNegativeCache "norm simp" (mayCloseGoal := true) goal do
       try
-        withNormTraceNode .normSimp do
+        withNormTraceNodeNegativeCache .normSimp do
           withMaxHeartbeats (← read).options.maxSimpHeartbeats do
-            normSimpCore goal goalMVars
+            normSimpCore goal goalMVars negativeCache
       catch e =>
         throwError "aesop: error in norm simp: {e.toMessageData}"
 
@@ -311,10 +352,11 @@ inductive NormSeqResult where
 
 abbrev NormStep :=
   MVarId → Array (IndexMatchResult NormRule) →
-  Array (IndexMatchResult NormRule) → NormM NormRuleResult
+  --TODO probably just move negativeCache into NormM and remove this later
+  Array (IndexMatchResult NormRule) → Simp.NegativeCache → NormM  (NormRuleResult × Simp.NegativeCache)
 
 def runNormSteps (goal : MVarId) (steps : Array NormStep)
-    (stepsNe : 0 < steps.size) : NormM NormSeqResult := do
+    (stepsNe : 0 < steps.size) (negativeCache : Simp.NegativeCache) : NormM (NormSeqResult × Simp.NegativeCache) := do
   let ctx ← readThe NormM.Context
   let maxIterations := ctx.options.maxNormIterations
   let mut iteration := 0
@@ -324,6 +366,7 @@ def runNormSteps (goal : MVarId) (steps : Array NormStep)
   let mut preSimpRules := ∅
   let mut postSimpRules := ∅
   let mut anySuccess := false
+  let mut negativeCache := negativeCache
   while iteration < maxIterations do
     if step.val == 0 then
       let rules ← selectNormRules ctx.ruleSet goal
@@ -331,7 +374,9 @@ def runNormSteps (goal : MVarId) (steps : Array NormStep)
         rules.partition λ r => r.rule.extra.penalty < (0 : Int)
       preSimpRules := preSimpRules'
       postSimpRules := postSimpRules'
-    match ← steps[step] goal preSimpRules postSimpRules with
+    let (result, negativeCache') ← steps[step] goal preSimpRules postSimpRules negativeCache
+    negativeCache := negativeCache.append negativeCache'
+    match result with
     | .succeeded newGoal scriptStep? =>
       anySuccess := true
       goal := newGoal
@@ -340,7 +385,7 @@ def runNormSteps (goal : MVarId) (steps : Array NormStep)
       step := ⟨0, stepsNe⟩
     | .proved scriptStep? =>
       script? := return (← script?).push (← scriptStep?)
-      return .proved script?
+      return (.proved script?, negativeCache)
     | .failed scriptStep? =>
       script? :=
         match scriptStep? with
@@ -350,35 +395,35 @@ def runNormSteps (goal : MVarId) (steps : Array NormStep)
         step := ⟨step.val + 1, h⟩
       else
         if anySuccess then
-          return .changed goal script?
+          return (.changed goal script?, negativeCache)
         else
-          return .unchanged script?
+          return (.unchanged script?, negativeCache)
   throwError "aesop: exceeded maximum number of normalisation iterations ({maxIterations}). This means normalisation probably got stuck in an infinite loop."
 
 def NormStep.runPreSimpRules (mvars : UnorderedArraySet MVarId) : NormStep
-  | goal, preSimpRules, _ => runFirstNormRule goal mvars preSimpRules
+  | goal, preSimpRules, _ , _ => do return (<- runFirstNormRule goal mvars preSimpRules, ({} : Simp.NegativeCache))
 
 def NormStep.runPostSimpRules (mvars : UnorderedArraySet MVarId) : NormStep
-  | goal, _, postSimpRules =>
-    runFirstNormRule goal mvars postSimpRules
+  | goal, _, postSimpRules, _ => do
+    return (<- runFirstNormRule goal mvars postSimpRules, ({} : Simp.NegativeCache))
 
 def NormStep.unfold (mvars : HashSet MVarId) : NormStep
-  | goal, _, _ => do
+  | goal, _, _, _ => do
     if (← readThe NormM.Context).options.enableUnfold then
-      normUnfold goal mvars
+      return (<- normUnfold goal mvars, ({} : Simp.NegativeCache))
     else
       aesop_trace[steps] "norm unfold is disabled (options := \{ ..., enableUnfold := false })"
-      return .failed none
+      return (.failed none, ({} : Simp.NegativeCache))
 
 def NormStep.simp (mvars : HashSet MVarId) : NormStep
-  | goal, _, _ => do
+  | goal, _, _, negativeCache => do
     if ! (← readThe NormM.Context).normSimpContext.enabled then
       aesop_trace[steps] "norm simp is disabled (simp_options := \{ ..., enabled := false })"
-      return .failed none
-    normSimp goal mvars
+      return (.failed none, ({} : Simp.NegativeCache))
+    normSimp goal mvars negativeCache
 
 partial def normalizeGoalMVar (goal : MVarId)
-    (mvars : UnorderedArraySet MVarId) : NormM NormSeqResult := do
+    (mvars : UnorderedArraySet MVarId) (negativeCache : Simp.NegativeCache): NormM (NormSeqResult × Simp.NegativeCache):= do
   let mvarsHashSet := .ofArray mvars.toArray
   let mut normSteps := #[
     NormStep.runPreSimpRules mvars,
@@ -387,7 +432,7 @@ partial def normalizeGoalMVar (goal : MVarId)
     NormStep.runPostSimpRules mvars
   ]
   runNormSteps goal normSteps
-    (by simp (config := { decide := true }) [normSteps])
+    (by simp (config := { decide := true }) [normSteps]) negativeCache
 
 -- Returns true if the goal was solved by normalisation.
 def normalizeGoalIfNecessary (gref : GoalRef) [Aesop.Queue Q] :
@@ -404,9 +449,12 @@ def normalizeGoalIfNecessary (gref : GoalRef) [Aesop.Queue Q] :
   | .provenByNormalization .. => return true
   | .normal .. => return false
   | .notNormal => pure ()
-  let (normResult, postState) ← controlAt MetaM λ runInBase => do
+  let negativeCache := (<-get).negativeCache
+  let ((normResult, negativeCache), postState) ← controlAt MetaM λ runInBase => do
     (← gref.get).runMetaMInParentState do
-      runInBase $ normalizeGoalMVar preGoal g.mvars
+      runInBase $ normalizeGoalMVar preGoal g.mvars negativeCache
+  --TODO do we need to check resulttype here?
+  appendNegativeCache negativeCache
   match normResult with
   | .changed postGoal script? =>
     gref.modify (·.setNormalizationState (.normal postGoal postState script?))
