@@ -202,6 +202,12 @@ def normSimpCore (goal : MVarId)
   goal.withContext do
     let preState ← saveState
     let localRules := (← read).ruleSet.localNormSimpRules
+    --TODO what to do with isSimpAll, also is there a way to avoid calling addLocalRules twice
+    --TODO do other simp depending on result, also move this whole stuff in own function?
+    let (ctx', simprocs') ←
+          addLocalRules localRules ctx.toContext ctx.simprocs
+            (isSimpAll := true)
+    let (result, negativeCache' ) ← Aesop.simpTargetStar goal ctx' simprocs'
     let (result, negativeCache' ) ←
       if ctx.useHyps then
         let (ctx, simprocs) ←

@@ -79,6 +79,19 @@ def addLetDeclsToSimpTheoremsUnlessZetaDelta (ctx : Simp.Context) :
   else
     addLetDeclsToSimpTheorems ctx
 
+def simpTargetStar  (mvarId : MVarId) (ctx : Simp.Context)
+    (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
+    (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}): MetaM (SimpResult × Simp.NegativeCache) := do
+  --TODO needed?
+  let ctx := { ctx with config.failIfUnchanged := false }
+  let (result, { usedTheorems := usedSimps, .. }, negativeCache) ←
+    Meta.simpTargetStar mvarId ctx simprocs discharge? stats
+      negativeCache
+  match result with
+  | .closed => return (.solved usedSimps, negativeCache)
+  | .modified mvarId' => return (.simplified mvarId' usedSimps, negativeCache)
+  | .noChange => return (.unchanged mvarId, negativeCache)
+
 def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
     (simplifyTarget : Bool := true) (fvarIdsToSimp : Array FVarId := #[])
