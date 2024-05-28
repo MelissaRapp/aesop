@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace TryThisIndentation
 
 /--
 info: Try this:

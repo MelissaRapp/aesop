@@ -5,9 +5,10 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace GlobalRuleIdentErrorChecking
 
 /--
-error: duplicate rule 'Nat.add_assoc'; rule 'bar' was already given.
+error: duplicate rule 'Nat.add_assoc'; rule 'GlobalRuleIdentErrorChecking.bar' was already given.
 Use [<term>,...] to give multiple rules.
 -/
 #guard_msgs in

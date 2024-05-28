@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace DefaultRuleSetsInit
 
 set_option aesop.check.all true
 

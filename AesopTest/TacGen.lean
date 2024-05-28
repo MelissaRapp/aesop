@@ -1,4 +1,5 @@
 import Aesop
+namespace TacGen
 
 open Lean
 open Lean.Meta

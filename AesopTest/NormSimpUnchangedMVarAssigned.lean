@@ -7,6 +7,7 @@ Authors: Thomas Murrills, Jannis Limperg
 -- Thanks to Thomas Murrills for reporting this bug.
 
 import Aesop
+namespace NormSimpUnchangedMVarAssigned
 
 set_option aesop.check.all true
 

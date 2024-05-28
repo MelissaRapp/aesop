@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Asta H. From, Jannis Limperg
 -/
 import Aesop
+namespace «13_2»
 
 set_option aesop.check.all true
 set_option aesop.smallErrorMessages true

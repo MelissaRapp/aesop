@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace SafeExtractionCopyIntroducedMVars
 
 set_option aesop.check.all true
 
@@ -47,7 +48,7 @@ case a.a
 case x
 ⊢ Nat
 ---
-error: (kernel) declaration has metavariables '_example'
+error: (kernel) declaration has metavariables 'SafeExtractionCopyIntroducedMVars._example'
 -/
 #guard_msgs in
 example : P := by

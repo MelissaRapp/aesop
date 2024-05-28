@@ -1,4 +1,5 @@
 import Aesop
+namespace «41»
 
 set_option aesop.check.all true
 

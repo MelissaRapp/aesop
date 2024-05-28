@@ -7,6 +7,7 @@ Authors: Jireh Loreaux, Jannis Limperg
 -- Thanks to Jireh Loreaux for reporting this MWE.
 
 import Aesop
+namespace EraseUnfold
 
 set_option aesop.check.all true
 set_option aesop.smallErrorMessages true

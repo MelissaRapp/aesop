@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace NoProgress
 
 set_option aesop.check.all true
 set_option aesop.smallErrorMessages true

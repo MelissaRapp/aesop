@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace Issue2
 
 -- This option would make Aesop time out.
 set_option aesop.check.all false

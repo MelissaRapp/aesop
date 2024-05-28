@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace Simprocs
 
 open Lean Lean.Meta
 

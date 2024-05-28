@@ -6,6 +6,7 @@ Authors: Jannis Limperg
 
 import Aesop
 import Lean
+namespace Environment
 
 open Lean Lean.Meta Lean.Elab.Tactic
 

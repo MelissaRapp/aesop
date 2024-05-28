@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace Persistence0
 
 set_option aesop.check.all true
 

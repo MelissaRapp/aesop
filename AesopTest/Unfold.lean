@@ -8,6 +8,7 @@ Authors: Jannis Limperg
 -- https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/Goal.20state.20not.20updating.2C.20bugs.2C.20etc.2E/near/338356062
 
 import Aesop
+namespace Unfold
 
 set_option aesop.check.all true
 

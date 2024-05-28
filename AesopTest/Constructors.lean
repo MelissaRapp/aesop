@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace Constructors
 
 set_option aesop.check.all true
 set_option aesop.smallErrorMessages true

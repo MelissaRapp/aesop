@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace TerminalError
 
 set_option aesop.check.all true
 

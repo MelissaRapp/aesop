@@ -12,3 +12,4 @@ in our dependencies.
 import Aesop
 import Lean
 import Batteries
+namespace NoImportClash
