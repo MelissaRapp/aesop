@@ -13,3 +13,4 @@ import Aesop
 import Lean
 import Batteries
 namespace NoImportClash
+set_option aesop.collectStats true

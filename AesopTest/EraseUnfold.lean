@@ -8,6 +8,7 @@ Authors: Jireh Loreaux, Jannis Limperg
 
 import Aesop
 namespace EraseUnfold
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 set_option aesop.smallErrorMessages true

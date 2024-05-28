@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 import Aesop
 namespace Com
+set_option aesop.collectStats true
 
 set_option aesop.check.all false
 -- With this option, the test becomes unbearably slow.

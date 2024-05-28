@@ -6,6 +6,7 @@ Authors: Jannis Limperg
 
 import Aesop
 namespace Ext
+set_option aesop.collectStats true
 
 example (f g : α → β) (h : ∀ a, f a = g a) : f = g := by
   aesop

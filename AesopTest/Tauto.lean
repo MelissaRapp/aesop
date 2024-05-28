@@ -6,6 +6,7 @@ Authors: David Renshaw, Jannis Limperg
 
 import Aesop
 namespace Tauto
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 

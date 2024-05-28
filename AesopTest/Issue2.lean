@@ -6,6 +6,7 @@ Authors: Jannis Limperg
 
 import Aesop
 namespace Issue2
+set_option aesop.collectStats true
 
 -- This option would make Aesop time out.
 set_option aesop.check.all false

@@ -1,5 +1,6 @@
 import Aesop
 namespace TacGen
+set_option aesop.collectStats true
 
 open Lean
 open Lean.Meta

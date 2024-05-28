@@ -6,6 +6,7 @@ Authors: Jannis Limperg
 
 import Aesop
 namespace RulePattern
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 

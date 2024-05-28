@@ -6,6 +6,7 @@ Authors: Jannis Limperg
 
 import Aesop
 namespace Simprocs
+set_option aesop.collectStats true
 
 open Lean Lean.Meta
 
