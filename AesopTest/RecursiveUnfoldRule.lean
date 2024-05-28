@@ -6,6 +6,7 @@ Authors: Jannis Limperg
 
 import Aesop
 namespace RecursiveUnfoldRule
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 

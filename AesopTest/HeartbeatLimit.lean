@@ -7,6 +7,7 @@ Authors: Jannis Limperg
 import Aesop
 import Batteries.Linter.UnreachableTactic
 namespace HeartbeatLimit
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 set_option linter.unreachableTactic false

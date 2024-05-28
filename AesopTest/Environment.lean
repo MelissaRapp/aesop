@@ -7,6 +7,7 @@ Authors: Jannis Limperg
 import Aesop
 import Lean
 namespace Environment
+set_option aesop.collectStats true
 
 open Lean Lean.Meta Lean.Elab.Tactic
 

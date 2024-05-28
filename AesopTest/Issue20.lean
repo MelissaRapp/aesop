@@ -5,6 +5,7 @@ Authors: Asta H. From, Jannis Limperg
 -/
 import Aesop
 namespace Issue20
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 

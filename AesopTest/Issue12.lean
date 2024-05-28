@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 import Aesop
 namespace Issue12
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 

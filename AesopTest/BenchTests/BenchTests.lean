@@ -88,5 +88,4 @@ import AesopTest.TerminalError
 import AesopTest.TraceProof
 import AesopTest.TryThisIndentation
 import AesopTest.Unfold
-set_option aesop.collectStats true
 #aesop_stats

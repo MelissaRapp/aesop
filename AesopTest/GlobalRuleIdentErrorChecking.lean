@@ -6,6 +6,7 @@ Authors: Jannis Limperg
 
 import Aesop
 namespace GlobalRuleIdentErrorChecking
+set_option aesop.collectStats true
 
 /--
 error: duplicate rule 'Nat.add_assoc'; rule 'GlobalRuleIdentErrorChecking.bar' was already given.

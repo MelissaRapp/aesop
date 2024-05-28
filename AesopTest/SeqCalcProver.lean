@@ -6,6 +6,7 @@ Authors: Asta H. From
 
 import Aesop
 namespace SeqCalcProver
+set_option aesop.collectStats true
 
 set_option aesop.check.script true
 set_option aesop.check.script.steps true

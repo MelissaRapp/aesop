@@ -5,6 +5,7 @@ Authors: Asta H. From, Jannis Limperg
 -/
 import Aesop
 namespace «13»
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
