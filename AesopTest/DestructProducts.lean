@@ -8,6 +8,7 @@ Authors: Jannis Limperg
 -- types.
 
 import Aesop
+namespace DestructProducts
 
 set_option aesop.check.all true
 

@@ -5,6 +5,7 @@ Authors: Jesse Vogel, Jannis Limperg
 -/
 
 import Aesop
+namespace Jesse
 
 set_option aesop.check.all true
 

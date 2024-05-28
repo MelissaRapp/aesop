@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace ScriptWithOptions
 
 set_option aesop.check.all true
 

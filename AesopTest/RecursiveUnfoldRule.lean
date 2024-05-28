@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace RecursiveUnfoldRule
 
 set_option aesop.check.all true
 
@@ -16,7 +17,7 @@ def f₁ : Nat → Nat :=
   λ _ => 0
 
 /--
-error: Recursive definition 'f₂' cannot be used as an unfold rule (it would be unfolded infinitely often). Try adding a simp rule for it.
+error: Recursive definition 'RecursiveUnfoldRule.f₂' cannot be used as an unfold rule (it would be unfolded infinitely often). Try adding a simp rule for it.
 -/
 #guard_msgs in
 @[aesop norm unfold]
@@ -25,7 +26,7 @@ def f₂ : Nat → Nat
   | n + 1 => f₂ n
 
 /--
-error: Recursive definition 'f₃' cannot be used as an unfold rule (it would be unfolded infinitely often). Try adding a simp rule for it.
+error: Recursive definition 'RecursiveUnfoldRule.f₃' cannot be used as an unfold rule (it would be unfolded infinitely often). Try adding a simp rule for it.
 -/
 #guard_msgs in
 @[aesop norm unfold]
@@ -37,7 +38,7 @@ def f₃ : Nat → Nat :=
 
 
 /--
-error: Recursive definition 'f₄' cannot be used as an unfold rule (it would be unfolded infinitely often). Try adding a simp rule for it.
+error: Recursive definition 'RecursiveUnfoldRule.f₄' cannot be used as an unfold rule (it would be unfolded infinitely often). Try adding a simp rule for it.
 -/
 #guard_msgs in
 @[aesop norm unfold]
@@ -64,7 +65,7 @@ end
 -- We also forbid `unfold` rules for declarations that don't unfold.
 
 /--
-error: Declaration 'test' cannot be unfolded.
+error: Declaration 'RecursiveUnfoldRule.test' cannot be unfolded.
 -/
 #guard_msgs in
 @[aesop norm unfold]

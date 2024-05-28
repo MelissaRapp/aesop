@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import AesopTest.RuleSetNameHygiene0
+namespace RuleSetNameHygiene1
 
 set_option aesop.check.all true
 set_option aesop.smallErrorMessages true

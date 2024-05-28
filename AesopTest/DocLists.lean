@@ -8,6 +8,7 @@ Authors: Jannis Limperg
 -- with, the README.
 
 import Aesop
+namespace DocLists
 
 set_option aesop.check.all true
 

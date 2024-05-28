@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import AesopTest.RuleSets0
+namespace RuleSets1
 
 set_option aesop.check.all true
 set_option aesop.smallErrorMessages true

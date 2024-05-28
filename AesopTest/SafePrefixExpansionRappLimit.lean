@@ -5,6 +5,7 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace SafePrefixExpansionRappLimit
 
 @[aesop safe]
 axiom loopy {α : Prop} : α ∨ α → α
