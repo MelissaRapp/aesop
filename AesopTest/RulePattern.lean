@@ -5,6 +5,8 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace RulePattern
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 
@@ -76,7 +78,7 @@ axiom quuz (x y : Nat) : True
 axiom bar (x y : Nat) : True
 
 /--
-error: aesop: while registering 'baz' as a forward rule: argument 'x' cannot be immediate since it is already determined by a pattern
+error: aesop: while registering 'RulePattern.baz' as a forward rule: argument 'x' cannot be immediate since it is already determined by a pattern
 -/
 #guard_msgs in
 @[aesop safe forward (pattern := (↑x : Int)) (immediate := [y, x])]

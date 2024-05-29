@@ -4,6 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jannis Limperg
 -/
 import Aesop
+namespace Com
+set_option aesop.collectStats true
 
 set_option aesop.check.all false
 -- With this option, the test becomes unbearably slow.

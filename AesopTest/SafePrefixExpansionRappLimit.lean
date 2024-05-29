@@ -5,6 +5,8 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace SafePrefixExpansionRappLimit
+set_option aesop.collectStats true
 
 @[aesop safe]
 axiom loopy {α : Prop} : α ∨ α → α

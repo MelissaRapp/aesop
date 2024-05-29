@@ -4,6 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Asta H. From, Jannis Limperg
 -/
 import Aesop
+namespace Issue10
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 

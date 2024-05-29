@@ -107,6 +107,7 @@ def iget [Inhabited α] : Option α → α
 end Option
 
 namespace List
+set_option aesop.collectStats true
 
 -- The `ext` rule for lists says that `l₁ = l₂ ↔ (∀ a, a ∈ l₁ ↔ a ∈ l₂)`. This
 -- is not particularly helpful for this file.

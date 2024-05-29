@@ -5,6 +5,8 @@ Authors: Jannis Limperg
 -/
 
 import Aesop
+namespace TryThisIndentation
+set_option aesop.collectStats true
 
 /--
 info: Try this:

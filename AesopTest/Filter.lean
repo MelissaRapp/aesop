@@ -5,6 +5,8 @@ Authors: Sebastian Ullrich, Jannis Limperg
 -/
 
 import Aesop
+namespace Filter
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 

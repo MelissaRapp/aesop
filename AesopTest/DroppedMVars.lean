@@ -10,6 +10,8 @@ Authors: Jesse Vogel, Jannis Limperg
 -- additional regular goal for the mvar.
 
 import Aesop
+namespace DroppedMVars
+set_option aesop.collectStats true
 
 set_option aesop.check.all true
 

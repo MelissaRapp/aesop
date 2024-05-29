@@ -6,7 +6,7 @@ Authors: Jannis Limperg
 
 import AesopTest.Persistence1
 import AesopTest.Persistence2
-
+set_option aesop.collectStats true
 set_option aesop.check.all true
 
 namespace Aesop
