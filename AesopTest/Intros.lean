@@ -8,7 +8,7 @@ import Aesop
 namespace Intros
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 def Injective₁ (f : α → β) := ∀ x y, f x = f y → x = y

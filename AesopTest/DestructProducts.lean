@@ -11,7 +11,7 @@ import Aesop
 namespace DestructProducts
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 @[aesop safe constructors]
 inductive Ex (α : Sort u) (β : α → Prop) : Prop

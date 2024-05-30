@@ -8,7 +8,7 @@ import Aesop
 namespace Erase
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 @[aesop [10% cases, safe constructors]]

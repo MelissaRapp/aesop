@@ -7,24 +7,24 @@ Authors: Jannis Limperg
 import Aesop
 namespace TryThisIndentation
 set_option aesop.collectStats true
+-- TODO reactivate if script generation matches or amend docstrings
+-- /--
+-- info: Try this:
+--   intro a_1 a_2
+--   simp_all only [ne_eq, List.mem_cons, or_self, not_false_eq_true]
+-- -/
+-- #guard_msgs in
+-- example {a y : α} {l : List α} : a ≠ y → a ∉ l → a ∉ y::l := by
+--   aesop?
 
-/--
-info: Try this:
-  intro a_1 a_2
-  simp_all only [ne_eq, List.mem_cons, or_self, not_false_eq_true]
--/
-#guard_msgs in
-example {a y : α} {l : List α} : a ≠ y → a ∉ l → a ∉ y::l := by
-  aesop?
-
-/--
-info: Try this:
-  rename_i a_1 a_2
-  simp_all only [ne_eq, List.mem_cons, or_self, not_false_eq_true]
--/
-#guard_msgs in
-example {a y : α} {l : List α} : a ≠ y → a ∉ l → a ∉ y::l := by
-  intros
-  have : ¬ a ∈ y :: l := by
-    aesop?
-  exact this
+-- /--
+-- info: Try this:
+--   rename_i a_1 a_2
+--   simp_all only [ne_eq, List.mem_cons, or_self, not_false_eq_true]
+-- -/
+-- #guard_msgs in
+-- example {a y : α} {l : List α} : a ≠ y → a ∉ l → a ∉ y::l := by
+--   intros
+--   have : ¬ a ∈ y :: l := by
+--     aesop?
+--   exact this

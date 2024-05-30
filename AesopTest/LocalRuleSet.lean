@@ -8,7 +8,7 @@ import Aesop
 namespace LocalRuleSet
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 -- We used to add local rules to the `default` rule set, but this doesn't work

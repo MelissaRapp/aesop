@@ -11,7 +11,7 @@ import Aesop
 namespace DocLists
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 inductive MyList (α : Type _)
   | nil

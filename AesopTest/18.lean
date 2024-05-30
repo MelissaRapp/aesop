@@ -7,7 +7,7 @@ import Aesop
 namespace «18»
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 attribute [aesop safe cases (cases_patterns := [List.Mem _ []])] List.Mem

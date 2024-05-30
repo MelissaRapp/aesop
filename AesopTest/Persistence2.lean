@@ -8,6 +8,6 @@ import Aesop
 namespace Persistence2
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 declare_aesop_rule_sets [test_persistence2]

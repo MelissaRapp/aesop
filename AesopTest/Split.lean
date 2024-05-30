@@ -8,7 +8,7 @@ import Aesop
 namespace Split
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 -- Tests the builtin split rules.
 

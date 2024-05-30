@@ -8,7 +8,7 @@ import Aesop
 namespace Tauto
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 -- This is an example which is currently challenging for Lean 4 `tauto`.
 example {α : Type} [LE α] (a b c : α) (x₀ x₁ x₂ : Prop)

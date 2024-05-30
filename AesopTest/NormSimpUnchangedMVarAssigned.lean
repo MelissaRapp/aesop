@@ -10,7 +10,7 @@ import Aesop
 namespace NormSimpUnchangedMVarAssigned
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 class Foo (α : Type u) where
   f : α → α

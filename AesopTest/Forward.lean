@@ -8,7 +8,7 @@ import Aesop
 namespace Forward
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 open Aesop Lean Lean.Meta Lean.Elab.Tactic

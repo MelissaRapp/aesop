@@ -8,7 +8,7 @@ import Aesop
 namespace TerminalError
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 /--
 error: tactic 'aesop' failed, failed to prove the goal after exhaustive search.

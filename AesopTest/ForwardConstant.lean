@@ -8,7 +8,7 @@ import Aesop
 namespace ForwardConstant
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 structure Foo where

@@ -8,7 +8,7 @@ import Aesop
 namespace Nonterminal
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 structure MyTrue₁

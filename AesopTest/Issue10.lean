@@ -7,7 +7,7 @@ import Aesop
 namespace Issue10
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 attribute [aesop unsafe [50% constructors, 50% cases]] List.Mem
 

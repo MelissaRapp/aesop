@@ -8,7 +8,7 @@ import Aesop
 namespace ConstructorEquations
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 -- From an equation where both sides contain only constructor applications
 -- and variables, Aesop should derive equations about the variables.

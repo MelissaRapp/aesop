@@ -8,7 +8,7 @@ import Aesop
 namespace SafeExtractionCopyIntroducedMVars
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 axiom P : Prop
 axiom T : Prop

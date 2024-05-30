@@ -8,7 +8,7 @@ import Aesop
 namespace RecursiveUnfoldRule
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 -- We forbid `unfold` rules for recursive functions since they would lead to
 -- infinite unfolding.

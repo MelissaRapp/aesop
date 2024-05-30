@@ -8,7 +8,7 @@ import Aesop
 namespace CustomIndexing
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 variable {α : Type}

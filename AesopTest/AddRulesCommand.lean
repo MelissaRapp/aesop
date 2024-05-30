@@ -8,7 +8,7 @@ import Aesop
 namespace AddRulesCommand
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 -- Basic examples

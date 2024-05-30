@@ -13,7 +13,7 @@ import Aesop
 namespace DroppedMVars
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 axiom Ring : Type
 

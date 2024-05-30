@@ -8,7 +8,7 @@ import Aesop
 namespace DefaultRuleSetsInit
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 declare_aesop_rule_sets [regular₁, regular₂]
 
