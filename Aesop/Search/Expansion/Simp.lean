@@ -79,19 +79,6 @@ def addLetDeclsToSimpTheoremsUnlessZetaDelta (ctx : Simp.Context) :
   else
     addLetDeclsToSimpTheorems ctx
 
-def simpTargetStar  (mvarId : MVarId) (ctx : Simp.Context)
-    (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
-    (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}): MetaM (SimpResult × Simp.NegativeCache) := do
-  --TODO needed?
-  let ctx := { ctx with config.failIfUnchanged := false }
-  let (result, { usedTheorems := usedSimps, .. }, negativeCache) ←
-    Meta.simpTargetStar mvarId ctx simprocs discharge? stats
-      negativeCache
-  match result with
-  | .closed => return (.solved usedSimps, negativeCache)
-  | .modified mvarId' => return (.simplified mvarId' usedSimps, negativeCache)
-  | .noChange => return (.unchanged mvarId, negativeCache)
-
 def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
     (simplifyTarget : Bool := true) (fvarIdsToSimp : Array FVarId := #[])
@@ -122,6 +109,16 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
       fvarIdsToSimp := fvarIdsToSimp.push ldecl.fvarId
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
     Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
+      stats negativeCache
+
+--no discharge? param, since we always want none here
+--TODO can simplifyTarget also be removed and always be set to true?
+def simpStarAtStar (mvarId : MVarId) (ctx : Simp.Context)
+    (simprocs : Simp.SimprocsArray) (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}):
+    MetaM (SimpResult × Simp.NegativeCache):=
+  mvarId.withContext do
+    let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
+    Aesop.simpGoal mvarId ctx simprocs none simplifyTarget (<- mvarId.getNondepPropHyps)
       stats negativeCache
 
 def simpAll (mvarId : MVarId) (ctx : Simp.Context)

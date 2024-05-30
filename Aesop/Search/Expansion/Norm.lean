@@ -198,53 +198,72 @@ def SimpResult.toNormRuleResult (ruleName : DisplayRuleName)
 
 def normSimpCore (goal : MVarId)
     (goalMVars : HashSet MVarId) (negativeCache: Simp.NegativeCache): NormM (NormRuleResult × Simp.NegativeCache) := do
+  trace[Meta.Tactic.simp.negativeCache] "normSimpCore call {goal}"
   let ctx := (← read).normSimpContext
   goal.withContext do
     let preState ← saveState
     let localRules := (← read).ruleSet.localNormSimpRules
-    --TODO what to do with isSimpAll, also is there a way to avoid calling addLocalRules twice
-    --TODO do other simp depending on result, also move this whole stuff in own function?
+    --TODO move down
+    let (result, negativeCache' ) ← Aesop.simpStarAtStar goal ctx.toContext ctx.simprocs (negativeCache := negativeCache)
     let (ctx', simprocs') ←
           addLocalRules localRules ctx.toContext ctx.simprocs
-            (isSimpAll := true)
-    let (result, negativeCache' ) ← Aesop.simpTargetStar goal ctx' simprocs'
-    let (result, negativeCache' ) ←
-      if ctx.useHyps then
-        let (ctx, simprocs) ←
-          addLocalRules localRules ctx.toContext ctx.simprocs
-            (isSimpAll := true)
-        let (result) <- Aesop.simpAll goal ctx simprocs
-        pure (result, negativeCache)
-      else
-        let (ctx, simprocs) ←
-          addLocalRules localRules ctx.toContext ctx.simprocs
-            (isSimpAll := false)
-        -- TODO pass negativeCache upwards, give it to this as param
-        Aesop.simpGoalWithAllHypotheses goal ctx simprocs (negativeCache := negativeCache)
-
-
-
+            (isSimpAll := ctx.useHyps)
+    match result with
+    | .solved .. =>
     -- It can happen that simp 'solves' the goal but leaves some mvars
     -- unassigned. In this case, we treat the goal as unchanged.
-    let result ←
-      match result with
-      | .solved .. =>
-        let anyMVarDropped ← goalMVars.anyM (notM ·.isAssignedOrDelayedAssigned)
-        if anyMVarDropped then
-          aesop_trace[steps] "Normalisation simp solved the goal but dropped some metavariables. Skipping normalisation simp."
-          restoreState preState
-          pure $ .unchanged goal
-        else
-          pure result
-      | .unchanged .. =>
-        aesop_trace[steps] "norm simp left the goal unchanged"
-        pure result
-      | .simplified .. =>
-        pure result
+      let anyMVarDropped ← goalMVars.anyM (notM ·.isAssignedOrDelayedAssigned)
+      if anyMVarDropped then
+        aesop_trace[steps] "Normalisation simp solved the goal but dropped some metavariables. Skipping normalisation simp."
+        restoreState preState
+        let postState ← saveState
+        --TODO is negativeCache returned valid anyways? if that is the case return it instead of initial one
+        let normResult <- (SimpResult.unchanged goal).toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
+        return (normResult, negativeCache)
+      else
+        let postState ← saveState
+        let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
+        return (normResult, negativeCache')
+    | .unchanged .. =>normSimpCore' goal result {} preState ctx' simprocs' goalMVars negativeCache'
+    --TODO how to get new goalMVars?
+    | .simplified newGoal usedSimps =>
+    normSimpCore' newGoal result usedSimps preState ctx' simprocs' goalMVars negativeCache'
+    -- let (result, _ ) ←
+    --   if ctx.useHyps then
+    --     let (ctx, simprocs) ←
+    --       addLocalRules localRules ctx.toContext ctx.simprocs
+    --         (isSimpAll := true)
+    --     let (result) <- Aesop.simpAll goal ctx simprocs
+    --     pure (result, negativeCache)
+    --   else
+    --     let (ctx, simprocs) ←
+    --       addLocalRules localRules ctx.toContext ctx.simprocs
+    --         (isSimpAll := false)
+    --     Aesop.simpGoalWithAllHypotheses goal ctx simprocs
 
-    let postState ← saveState
-    let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
-    pure (normResult, negativeCache')
+
+
+    -- -- It can happen that simp 'solves' the goal but leaves some mvars
+    -- -- unassigned. In this case, we treat the goal as unchanged.
+    -- let result ←
+    --   match result with
+    --   | .solved .. =>
+    --     let anyMVarDropped ← goalMVars.anyM (notM ·.isAssignedOrDelayedAssigned)
+    --     if anyMVarDropped then
+    --       aesop_trace[steps] "Normalisation simp solved the goal but dropped some metavariables. Skipping normalisation simp."
+    --       restoreState preState
+    --       pure $ .unchanged goal
+    --     else
+    --       pure result
+    --   | .unchanged .. =>
+    --     aesop_trace[steps] "norm simp left the goal unchanged"
+    --     pure result
+    --   | .simplified .. =>
+    --     pure result
+
+    -- let postState ← saveState
+    -- let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
+    -- pure (normResult, negativeCache')
 where
   addLocalRules (localRules : Array LocalNormSimpRule) (ctx : Simp.Context)
       (simprocs : Simp.SimprocsArray) (isSimpAll : Bool) :
@@ -254,6 +273,46 @@ where
         elabRuleTermForSimpMetaM goal r.simpTheorem ctx simprocs isSimpAll
       catch _ =>
         return (ctx, simprocs)
+  normSimpCore' (newGoal : MVarId) (interimResult : SimpResult) (interimSimps: Simp.UsedSimps) (preState: SavedState) (ctx : Simp.Context) (simprocs : Simp.SimprocsArray)
+    (goalMVars : HashSet MVarId) (negativeCache': Simp.NegativeCache): NormM (NormRuleResult × Simp.NegativeCache) := do
+    trace[Meta.Tactic.simp.negativeCache] "normSimpCore' call {newGoal}"
+    let normCtx := (← read).normSimpContext
+    newGoal.withContext do
+    let (result) ←
+      if normCtx.useHyps then
+        Aesop.simpAll newGoal ctx simprocs
+      else
+        let (result,_) <- Aesop.simpGoalWithAllHypotheses newGoal ctx simprocs
+        pure (result)
+
+
+
+
+    -- It can happen that simp 'solves' the goal but leaves some mvars
+    -- unassigned. In this case, we treat the goal as unchanged.
+    let result ←
+      match result with
+      | .solved usedSimps =>
+        let anyMVarDropped ← goalMVars.anyM (notM ·.isAssignedOrDelayedAssigned)
+        if anyMVarDropped then
+          aesop_trace[steps] "Normalisation simp solved the goal but dropped some metavariables. Skipping normalisation simp."
+          restoreState preState
+          pure $ .unchanged goal
+        else
+          pure (.solved (usedSimps.mergeWith interimSimps λ _ s _ => s))
+      | .unchanged .. =>
+        match interimResult with
+        | .unchanged .. =>
+          aesop_trace[steps] "norm simp left the goal unchanged"
+          pure interimResult
+        | _ =>
+          pure interimResult
+      | .simplified newGoal usedSimps =>
+        pure (.simplified newGoal (usedSimps.mergeWith interimSimps λ _ s _ => s))
+
+    let postState ← saveState
+    let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
+    pure (normResult, negativeCache')
 
 @[inline, always_inline]
 def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
