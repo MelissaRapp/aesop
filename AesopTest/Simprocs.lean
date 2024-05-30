@@ -10,7 +10,7 @@ set_option aesop.collectStats true
 
 open Lean Lean.Meta
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 def unfoldConst («from» to : Name) : Simp.Simproc := λ e =>

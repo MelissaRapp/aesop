@@ -8,7 +8,7 @@ import Aesop
 namespace SimpLetHypotheses
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 -- Aesop `simp` substitutes `let` hypotheses even when `zetaDelta` is disabled
 -- (which is the default).

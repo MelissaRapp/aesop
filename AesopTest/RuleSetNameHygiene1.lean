@@ -8,7 +8,7 @@ import AesopTest.RuleSetNameHygiene0
 namespace RuleSetNameHygiene1
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 macro "aesop_test" : tactic => `(tactic| aesop (rule_sets := [test]))

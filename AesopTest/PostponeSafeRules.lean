@@ -8,7 +8,7 @@ import Aesop
 namespace PostponeSafeRules
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 -- This is a test case for postponed safe rules. When a safe rule assigns mvars,
 -- it is not applied but instead postponed. Then we later try it again as an

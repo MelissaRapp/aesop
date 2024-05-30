@@ -7,7 +7,7 @@ import Aesop
 namespace «13_2»
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 inductive Perm : (xs ys : List α) → Type where

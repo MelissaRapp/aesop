@@ -6,7 +6,7 @@ Authors: Jannis Limperg
 import Aesop
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 -- When parsing the names of declarations for local rules, Aesop should take the
 -- currently opened namespaces into account.

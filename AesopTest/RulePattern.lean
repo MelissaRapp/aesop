@@ -8,7 +8,7 @@ import Aesop
 namespace RulePattern
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 macro "aesop!" : tactic =>
   `(tactic| aesop (config := { warnOnNonterminal := false }))

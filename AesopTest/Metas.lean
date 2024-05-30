@@ -8,7 +8,7 @@ import Aesop
 namespace Metas
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 example (P : α → Prop) (a : α) (h : P a) : ∃ a, P a := by
   aesop

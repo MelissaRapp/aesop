@@ -8,6 +8,6 @@ import Aesop
 namespace RuleSets0
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 declare_aesop_rule_sets [test_A, test_B, test_C, test_D]

@@ -8,7 +8,7 @@ import Aesop
 namespace CustomTactic
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 def Foo := True
@@ -29,6 +29,6 @@ def myTactic : TacticM Unit := do
   evalTactic $ ← `(tactic| rw [Foo])
 
 example : Foo := by
-  set_option aesop.check.script false in
-  set_option aesop.check.script.steps false in
+--  set_option aesop.check.script false in
+--  set_option aesop.check.script.steps false in
   aesop

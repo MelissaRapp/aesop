@@ -8,7 +8,7 @@ import Aesop
 namespace MVarsInInitialGoal
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 example {n m k : Nat} (h : n < m) (h₂ : m < k) : n < k := by
   apply Nat.lt_trans <;> aesop

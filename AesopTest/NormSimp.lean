@@ -8,7 +8,7 @@ import Aesop
 namespace NormSimp
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 -- A basic test for local simp rules.

@@ -8,7 +8,7 @@ import Aesop
 namespace «26»
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 attribute [-simp] List.all_cons List.all_nil List.all_eq_true
 

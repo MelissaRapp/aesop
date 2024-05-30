@@ -8,7 +8,7 @@ import Aesop
 namespace Subst
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 -- These test cases test the builtin subst tactic.

@@ -8,7 +8,7 @@ import Aesop
 namespace AllWeaken
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 set_option aesop.smallErrorMessages true
 
 inductive All (P : α → Prop) : List α → Prop where

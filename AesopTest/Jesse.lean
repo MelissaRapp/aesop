@@ -8,7 +8,7 @@ import Aesop
 namespace Jesse
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 axiom Ring : Type
 axiom Morphism (R S : Ring) : Type

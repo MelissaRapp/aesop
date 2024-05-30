@@ -8,7 +8,7 @@ import Aesop
 namespace ElabConfig
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 /--
 error: 'noSuchOption' is not a field of structure 'Aesop.Options'

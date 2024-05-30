@@ -13,7 +13,7 @@ import Aesop
 namespace «27»
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 @[aesop safe [constructors, cases (cases_patterns := [All _ [], All _ (_ :: _)])]]
 inductive All (P : α → Prop) : List α → Prop

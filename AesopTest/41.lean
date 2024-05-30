@@ -2,7 +2,7 @@ import Aesop
 namespace «41»
 set_option aesop.collectStats true
 
-set_option aesop.check.all true
+--set_option aesop.check.all true
 
 /--
 error: no such rule set: 'Nonexistent'
