@@ -198,7 +198,6 @@ def SimpResult.toNormRuleResult (ruleName : DisplayRuleName)
 
 def normSimpCore (goal : MVarId)
     (goalMVars : HashSet MVarId) (negativeCache: Simp.NegativeCache): NormM (NormRuleResult × Simp.NegativeCache) := do
-  trace[Meta.Tactic.simp.negativeCache] "normSimpCore call {goal}"
   let ctx := (← read).normSimpContext
   goal.withContext do
     let preState ← saveState
@@ -224,7 +223,7 @@ def normSimpCore (goal : MVarId)
         let postState ← saveState
         let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
         return (normResult, negativeCache')
-    | .unchanged .. =>normSimpCore' goal result {} preState ctx' simprocs' goalMVars negativeCache'
+    | .unchanged .. => normSimpCore' goal result {} preState ctx' simprocs' goalMVars negativeCache'
     --TODO how to get new goalMVars?
     | .simplified newGoal usedSimps =>
     normSimpCore' newGoal result usedSimps preState ctx' simprocs' goalMVars negativeCache'
@@ -274,17 +273,15 @@ where
       catch _ =>
         return (ctx, simprocs)
   normSimpCore' (newGoal : MVarId) (interimResult : SimpResult) (interimSimps: Simp.UsedSimps) (preState: SavedState) (ctx : Simp.Context) (simprocs : Simp.SimprocsArray)
-    (goalMVars : HashSet MVarId) (negativeCache': Simp.NegativeCache): NormM (NormRuleResult × Simp.NegativeCache) := do
-    trace[Meta.Tactic.simp.negativeCache] "normSimpCore' call {newGoal}"
+    (goalMVars : HashSet MVarId) (negativeCache': Simp.NegativeCache) : NormM (NormRuleResult × Simp.NegativeCache) := do
     let normCtx := (← read).normSimpContext
     newGoal.withContext do
     let (result) ←
       if normCtx.useHyps then
-        Aesop.simpAll newGoal ctx simprocs
+        --TODO initial stats
+        Aesop.simpAll' newGoal ctx simprocs
       else
-        let (result,_) <- Aesop.simpGoalWithAllHypotheses newGoal ctx simprocs
-        pure (result)
-
+        Aesop.simpGoalWithAllHypotheses newGoal ctx simprocs
 
 
 

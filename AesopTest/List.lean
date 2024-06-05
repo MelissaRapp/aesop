@@ -706,10 +706,10 @@ theorem replicate_right_injective (a : α) : Injective (λ n => replicate n a) :
   unfold Injective; intro x y
   induction x generalizing y <;> induction y <;>
     aesop (config := { useSimpAll := false })
---TODO fix
--- @[simp] theorem replicate_right_inj {a : α} {n m : Nat} :
---     replicate n a = replicate m a ↔ n = m := by
---   induction n generalizing m <;> aesop (add 1% cases Nat)
+
+@[simp] theorem replicate_right_inj {a : α} {n m : Nat} :
+    replicate n a = replicate m a ↔ n = m := by
+  induction n generalizing m <;> aesop (add 1% cases Nat)
 
 /-! ### pure -/
 

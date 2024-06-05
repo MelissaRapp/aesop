@@ -7,6 +7,7 @@ import Lean.Elab.Tactic.Simp
 import Aesop.Options
 import Aesop.Script
 import Aesop.RuleSet
+import Aesop.Search.Expansion.SimpAll
 import Lean.Elab.Tactic.Simp
 
 open Lean Lean.Meta
@@ -99,7 +100,7 @@ def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
 def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
     (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}):
-    MetaM (SimpResult × Simp.NegativeCache):=
+    MetaM (SimpResult):=
   mvarId.withContext do
     let lctx ← getLCtx
     let mut fvarIdsToSimp := Array.mkEmpty lctx.decls.size
@@ -108,8 +109,9 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
         continue
       fvarIdsToSimp := fvarIdsToSimp.push ldecl.fvarId
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
-    Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
+    let (r, _) <- Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
       stats negativeCache
+    return r
 
 --no discharge? param, since we always want none here
 --TODO can simplifyTarget also be removed and always be set to true?
@@ -121,13 +123,14 @@ def simpStarAtStar (mvarId : MVarId) (ctx : Simp.Context)
     Aesop.simpGoal mvarId ctx simprocs none simplifyTarget (<- mvarId.getNondepPropHyps)
       stats negativeCache
 
-def simpAll (mvarId : MVarId) (ctx : Simp.Context)
+
+def simpAll' (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) :
     MetaM SimpResult :=
   mvarId.withContext do
     let ctx := { ctx with config.failIfUnchanged := false }
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
-    match ← Lean.Meta.simpAll mvarId ctx simprocs stats with
+    match ← Aesop.simpAll mvarId ctx simprocs stats  with
     | (none, stats) => return .solved stats.usedTheorems
     | (some mvarIdNew, stats) =>
       if mvarIdNew == mvarId then
