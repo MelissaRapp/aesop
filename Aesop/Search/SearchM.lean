@@ -121,6 +121,10 @@ def getIteration : SearchM Q Iteration :=
 def incrementIteration : SearchM Q Unit :=
   modify λ s => { s with iteration := s.iteration.succ }
 
+def getAndResetNegativeCache : SearchM Q Simp.NegativeCache := do
+  let oldS ← getModify λ s => { s with negativeCache := {} }
+  pure oldS.negativeCache
+
 def setNegativeCache (negativeCache: Simp.NegativeCache) : SearchM Q Unit :=
   --TODO can there be duplicates?
   modify λ s => {s with negativeCache := negativeCache}

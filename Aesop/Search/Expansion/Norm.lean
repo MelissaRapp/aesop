@@ -511,7 +511,7 @@ def normalizeGoalIfNecessary (gref : GoalRef) [Aesop.Queue Q] :
   | .provenByNormalization .. => return true
   | .normal .. => return false
   | .notNormal => pure ()
-  let negativeCache := (<-get).negativeCache
+  let negativeCache ← getAndResetNegativeCache
   let ((normResult, negativeCache'), postState) ← controlAt MetaM λ runInBase => do
     (← gref.get).runMetaMInParentState do
       runInBase $ normalizeGoalMVar preGoal g.mvars negativeCache
