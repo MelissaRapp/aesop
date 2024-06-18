@@ -25,7 +25,7 @@ structure Context where
 
 end NormM
 
-abbrev NormM := ReaderT NormM.Context MetaM
+abbrev NormM :=  ReaderT NormM.Context MetaM
 
 instance : MonadBacktrack Meta.SavedState NormM where
   saveState := Meta.saveState
@@ -76,15 +76,15 @@ def withNormTraceNode (ruleName : DisplayRuleName) (k : NormM NormRuleResult) :
 
 --TODO probably just move negativeCache into NormM and remove this later
 @[inline, always_inline]
-def withNormTraceNodeNegativeCache (ruleName : DisplayRuleName) (k : NormM (NormRuleResult × Simp.NegativeCache)) :
-    NormM (NormRuleResult × Simp.NegativeCache ):=
+def withNormTraceNodeNegativeCache (ruleName : DisplayRuleName) (k : NormM (NormRuleResult × Simp.NegativeCache × Simp.CacheHits)) :
+    NormM (NormRuleResult × Simp.NegativeCache × Simp.CacheHits ):=
   withAesopTraceNode .steps fmt do
-    let (result, negativeCache) ← k
+    let (result, negativeCache, cacheHits) ← k
     if let some newGoal := result.newGoal? then
       aesop_trace[steps] newGoal
-    return (result, negativeCache)
+    return (result, negativeCache, cacheHits)
   where
-    fmt (r : Except Exception (NormRuleResult × Simp.NegativeCache)) : NormM MessageData := do
+    fmt (r : Except Exception (NormRuleResult × Simp.NegativeCache × Simp.CacheHits )) : NormM MessageData := do
       let emoji := exceptRuleResultToEmoji (·.fst.toEmoji) r
       return m!"{emoji} {ruleName}"
 
@@ -197,16 +197,17 @@ def SimpResult.toNormRuleResult (ruleName : DisplayRuleName)
         return .error ruleName
 
 def normSimpCore (goal : MVarId)
-    (goalMVars : HashSet MVarId) (negativeCache: Simp.NegativeCache): NormM (NormRuleResult × Simp.NegativeCache) := do
+    (goalMVars : HashSet MVarId) (negativeCache: Simp.NegativeCache): NormM (NormRuleResult × Simp.NegativeCache × Simp.CacheHits) := do
   let ctx := (← read).normSimpContext
   goal.withContext do
     let preState ← saveState
     let localRules := (← read).ruleSet.localNormSimpRules
     --TODO move down
-    let (result, negativeCache' ) ← Aesop.simpStarAtStar goal ctx.toContext ctx.simprocs (negativeCache := negativeCache)
+    let (result, negativeCache', cacheHits ) ← Aesop.simpStarAtStar goal ctx.toContext ctx.simprocs (negativeCache := negativeCache)
     let (ctx', simprocs') ←
           addLocalRules localRules ctx.toContext ctx.simprocs
             (isSimpAll := ctx.useHyps)
+    trace[Meta.Tactic.simp.negativeCache] "cacheHits {cacheHits.negativeCacheHits} {cacheHits.positiveCacheHits}"
     match result with
     | .solved .. =>
     -- It can happen that simp 'solves' the goal but leaves some mvars
@@ -218,15 +219,15 @@ def normSimpCore (goal : MVarId)
         let postState ← saveState
         --TODO is negativeCache returned valid anyways? if that is the case return it instead of initial one
         let normResult <- (SimpResult.unchanged goal).toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
-        return (normResult, negativeCache)
+        return (normResult, negativeCache, {})
       else
         let postState ← saveState
         let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
-        return (normResult, negativeCache')
-    | .unchanged .. => normSimpCore' goal result {} preState ctx' simprocs' goalMVars negativeCache'
+        return (normResult, negativeCache', cacheHits)
+    | .unchanged .. => normSimpCore' goal result {} preState ctx' simprocs' goalMVars negativeCache' cacheHits
     --TODO how to get new goalMVars?
     | .simplified newGoal usedSimps =>
-    normSimpCore' newGoal result usedSimps preState ctx' simprocs' goalMVars negativeCache'
+    normSimpCore' newGoal result usedSimps preState ctx' simprocs' goalMVars negativeCache' cacheHits
     -- let (result, _ ) ←
     --   if ctx.useHyps then
     --     let (ctx, simprocs) ←
@@ -273,7 +274,7 @@ where
       catch _ =>
         return (ctx, simprocs)
   normSimpCore' (newGoal : MVarId) (interimResult : SimpResult) (interimSimps: Simp.UsedSimps) (preState: SavedState) (ctx : Simp.Context) (simprocs : Simp.SimprocsArray)
-    (goalMVars : HashSet MVarId) (negativeCache': Simp.NegativeCache) : NormM (NormRuleResult × Simp.NegativeCache) := do
+    (goalMVars : HashSet MVarId) (negativeCache': Simp.NegativeCache) (cacheHits : Simp.CacheHits) : NormM (NormRuleResult × Simp.NegativeCache × Simp.CacheHits) := do
     let normCtx := (← read).normSimpContext
     newGoal.withContext do
     let (result) ←
@@ -309,7 +310,7 @@ where
 
     let postState ← saveState
     let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
-    pure (normResult, negativeCache')
+    pure (normResult, negativeCache', cacheHits)
 
 @[inline, always_inline]
 def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
@@ -337,7 +338,7 @@ def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
 --TODO probably just move negativeCache into NormM and remove this later
 @[inline, always_inline]
 def checkSimpNegativeCache (name : String) (mayCloseGoal : Bool) (goal : MVarId)
-    (x : NormM (NormRuleResult × Simp.NegativeCache)) : NormM (NormRuleResult × Simp.NegativeCache):= do
+    (x : NormM (NormRuleResult × Simp.NegativeCache × Simp.CacheHits)) : NormM (NormRuleResult × Simp.NegativeCache × Simp.CacheHits):= do
   if ! (← Check.rules.isEnabled) then
     x
   else
@@ -361,7 +362,7 @@ def checkSimpNegativeCache (name : String) (mayCloseGoal : Bool) (goal : MVarId)
 
 def normSimp (goal : MVarId) (goalMVars : HashSet MVarId) (negativeCache : Simp.NegativeCache ) :
     NormM (NormRuleResult × Simp.NegativeCache):= do
-  profilingRule .normSimp (wasSuccessful := λ _ => true) do
+  let (r, n, _ ):=  <- profilingRuleSimp .normSimp (wasSuccessful := λ _ => true) (λ (_,_, cacheHits) => cacheHits) do
     checkSimpNegativeCache "norm simp" (mayCloseGoal := true) goal do
       try
         withNormTraceNodeNegativeCache .normSimp do
@@ -369,6 +370,7 @@ def normSimp (goal : MVarId) (goalMVars : HashSet MVarId) (negativeCache : Simp.
             normSimpCore goal goalMVars negativeCache
       catch e =>
         throwError "aesop: error in norm simp: {e.toMessageData}"
+  return (r, n)
 
 def normUnfoldCore (goal : MVarId) (goalMVars : HashSet MVarId) :
     NormM NormRuleResult := do

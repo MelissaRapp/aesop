@@ -24,6 +24,8 @@ protected def default : StatsReport := λ statsArray => Id.run do
   let mut search := 0
   let mut ruleSelection := 0
   let mut ruleStats : HashMap DisplayRuleName RuleStatsTotals := ∅
+  let mut negativeCacheHits := 0
+  let mut positiveCacheHits := 0
   for stats in statsArray do
     let stats := stats.stats
     total := total + stats.total
@@ -32,6 +34,8 @@ protected def default : StatsReport := λ statsArray => Id.run do
     search := search + stats.search
     ruleSelection := ruleSelection + stats.ruleSelection
     ruleStats := stats.ruleStatsTotals (init := ruleStats)
+    negativeCacheHits := negativeCacheHits + stats.negativeCacheHits
+    positiveCacheHits := positiveCacheHits + stats.positiveCacheHits
   let samples := statsArray.size
   f!"Statistics for {statsArray.size} Aesop calls in current and imported modules\n\
      Displaying totals and [averages] in milliseconds\n\
@@ -40,6 +44,7 @@ protected def default : StatsReport := λ statsArray => Id.run do
      Rule set construction: {fmtTime ruleSetConstruction samples}\n\
      Rule selection:        {fmtTime ruleSelection samples}\n\
      Search:                {fmtTime search samples}\n\
+     Simp CacheHits: Negative: {negativeCacheHits} Positive: {positiveCacheHits}
      Rules:{Std.Format.indentD $ fmtRuleStats $ sortRuleStatsTotals $ ruleStats.toArray}"
 where
   fmtTime (n : Nanos) (samples : Nat) : Format :=

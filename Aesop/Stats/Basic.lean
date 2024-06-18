@@ -43,6 +43,8 @@ structure Stats where
   search : Nanos
   ruleSelection : Nanos
   ruleStats : Array RuleStats
+  negativeCacheHits : Nat
+  positiveCacheHits : Nat
   deriving Inhabited
 
 namespace Stats
@@ -54,6 +56,8 @@ protected def empty : Stats where
   search := 0
   ruleSelection := 0
   ruleStats := #[]
+  negativeCacheHits := 0
+  positiveCacheHits := 0
 
 instance : EmptyCollection Stats :=
   ⟨Stats.empty⟩
@@ -133,6 +137,7 @@ def trace (p : Stats) (opt : TraceOption) : CoreM Unit := do
   aesop_trace![opt] "Total: {p.total.printAsMillis}"
   aesop_trace![opt] "Configuration parsing: {p.configParsing.printAsMillis}"
   aesop_trace![opt] "Rule set construction: {p.ruleSetConstruction.printAsMillis}"
+  aesop_trace![opt] "Simp CacheHits: Negative: {p.negativeCacheHits} Positive: {p.positiveCacheHits}"
   withConstAesopTraceNode opt (collapsed := false)
       (return m!"Search: {p.search.printAsMillis}") do
     aesop_trace![opt] "Rule selection: {p.ruleSelection.printAsMillis}"
@@ -191,5 +196,12 @@ def profilingRule (rule : DisplayRuleName) (wasSuccessful : α → Bool) :
   profiling λ stats a elapsed =>
     let rp := { successful := wasSuccessful a, rule, elapsed }
     { stats with ruleStats := stats.ruleStats.push rp }
+
+@[inline, always_inline]
+def profilingRuleSimp (rule : DisplayRuleName) (wasSuccessful : α → Bool) (cacheHits : α → Lean.Meta.Simp.CacheHits):
+    m α → m α :=
+  profiling λ stats a elapsed =>
+    let rp := { successful := wasSuccessful a, rule, elapsed }
+    { stats with ruleStats := stats.ruleStats.push rp , negativeCacheHits := stats.negativeCacheHits + (cacheHits a).negativeCacheHits, positiveCacheHits := stats.positiveCacheHits + (cacheHits a).positiveCacheHits}
 
 end Aesop

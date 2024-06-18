@@ -83,19 +83,19 @@ def addLetDeclsToSimpTheoremsUnlessZetaDelta (ctx : Simp.Context) :
 def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
     (simplifyTarget : Bool := true) (fvarIdsToSimp : Array FVarId := #[])
-    (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}): MetaM (SimpResult × Simp.NegativeCache) := do
+    (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}): MetaM (SimpResult × Simp.NegativeCache × Simp.CacheHits) := do
   let mvarIdOld := mvarId
   let ctx := { ctx with config.failIfUnchanged := false }
-  let (result, { usedTheorems := usedSimps, .. }, negativeCache) ←
+  let (result, stats, negativeCache) ←
     Meta.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
       stats negativeCache
   if let some (_, mvarId) := result then
     if mvarId == mvarIdOld then
-      return (.unchanged mvarId, negativeCache)
+      return (.unchanged mvarId, negativeCache, stats.cacheHits)
     else
-      return (.simplified mvarId usedSimps, negativeCache)
+      return (.simplified mvarId stats.usedTheorems, negativeCache, stats.cacheHits)
   else
-    return (.solved usedSimps, negativeCache)
+    return (.solved stats.usedTheorems, negativeCache, stats.cacheHits)
 
 def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
@@ -117,7 +117,7 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
 --TODO can simplifyTarget also be removed and always be set to true?
 def simpStarAtStar (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}):
-    MetaM (SimpResult × Simp.NegativeCache):=
+    MetaM (SimpResult × Simp.NegativeCache × Simp.CacheHits):=
   mvarId.withContext do
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
     Aesop.simpGoal mvarId ctx simprocs none simplifyTarget (<- mvarId.getNondepPropHyps)
