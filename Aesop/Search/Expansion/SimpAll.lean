@@ -67,7 +67,7 @@ private partial def loop : M Bool := do
     let simpThmsWithoutEntry := (← getSimpTheorems).eraseTheorem entry.id
     let ctx := { ctx with simpTheorems := simpThmsWithoutEntry }
     let (r, stats, negativeCache') ← simpStep (← get).mvarId entry.proof entry.type ctx simprocs (stats := { (← get) with }) (negativeCache := negativeCache)
-    modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, negativeCache := negativeCache', cacheHits := s.cacheHits.mergeCacheHits stats.cacheHits }
+    modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, negativeCache := negativeCache', cacheHits := stats.cacheHits }
     match r with
     | none => return true -- closed the goal
     | some (proofNew, typeNew) =>
@@ -108,7 +108,7 @@ private partial def loop : M Bool := do
   let mvarId := (← get).mvarId
   let negativeCache := (← get).negativeCache
   let (r, stats, negativeCache') ← simpTarget mvarId (← get).ctx simprocs (stats := { (← get) with }) (negativeCache := negativeCache)
-  modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, negativeCache := negativeCache', cacheHits := s.cacheHits.mergeCacheHits stats.cacheHits }
+  modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, negativeCache := negativeCache', cacheHits := stats.cacheHits }
   match r with
   | none => return true
   | some mvarIdNew =>
