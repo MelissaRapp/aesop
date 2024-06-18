@@ -207,7 +207,6 @@ def normSimpCore (goal : MVarId)
     let (ctx', simprocs') ←
           addLocalRules localRules ctx.toContext ctx.simprocs
             (isSimpAll := ctx.useHyps)
-    trace[Meta.Tactic.simp.negativeCache] "cacheHits {cacheHits.negativeCacheHits} {cacheHits.positiveCacheHits}"
     match result with
     | .solved .. =>
     -- It can happen that simp 'solves' the goal but leaves some mvars
