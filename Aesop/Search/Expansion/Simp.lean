@@ -100,7 +100,7 @@ def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
 def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
     (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}):
-    MetaM (SimpResult):=
+    MetaM (SimpResult × Simp.NegativeCache × Simp.CacheHits):=
   mvarId.withContext do
     let lctx ← getLCtx
     let mut fvarIdsToSimp := Array.mkEmpty lctx.decls.size
@@ -109,9 +109,9 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
         continue
       fvarIdsToSimp := fvarIdsToSimp.push ldecl.fvarId
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
-    let (r, _) <- Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
+    let (r, negativeCache, cacheHits) <- Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
       stats negativeCache
-    return r
+    return (r, negativeCache, cacheHits)
 
 --no discharge? param, since we always want none here
 --TODO can simplifyTarget also be removed and always be set to true?
@@ -125,17 +125,17 @@ def simpStarAtStar (mvarId : MVarId) (ctx : Simp.Context)
 
 
 def simpAll' (mvarId : MVarId) (ctx : Simp.Context)
-    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) :
-    MetaM SimpResult :=
+    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}) :
+    MetaM (SimpResult × Simp.NegativeCache × Simp.CacheHits) :=
   mvarId.withContext do
     let ctx := { ctx with config.failIfUnchanged := false }
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
-    match ← Aesop.simpAll mvarId ctx simprocs stats  with
-    | (none, stats) => return .solved stats.usedTheorems
-    | (some mvarIdNew, stats) =>
+    match ← Aesop.simpAll mvarId ctx simprocs stats (negativeCache := negativeCache) with
+    | (none, stats, negativeCache) => return (.solved stats.usedTheorems, negativeCache, stats.cacheHits)
+    | (some mvarIdNew, stats, negativeCache) =>
       if mvarIdNew == mvarId then
-        return .unchanged mvarIdNew
+        return (.unchanged mvarIdNew, negativeCache, stats.cacheHits)
       else
-        return .simplified mvarIdNew stats.usedTheorems
+        return (.simplified mvarIdNew stats.usedTheorems, negativeCache, stats.cacheHits)
 
 end Aesop

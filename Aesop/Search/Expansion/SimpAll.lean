@@ -31,11 +31,13 @@ structure State where
   simprocs     : SimprocsArray
   usedTheorems : Simp.UsedSimps := {}
   diag         : Simp.Diagnostics := {}
+  negativeCache: Simp.NegativeCache := {}
+  cacheHits    : Simp.CacheHits := {}
 
 abbrev M := StateRefT State MetaM
 
 private def initEntries : M Unit := do
-  let hs := (←  (← get).mvarId.withContext do getPropHyps).reverse
+  let hs := (←  (← get).mvarId.withContext do getPropHyps)
   let hsNonDeps ← (← get).mvarId.getNondepPropHyps
   let mut simpThms := (← get).ctx.simpTheorems
   for h in hs do
@@ -58,13 +60,14 @@ private partial def loop : M Bool := do
   let simprocs := (← get).simprocs
   -- simplify entries
   for i in [:(← get).entries.size] do
+    let negativeCache := (← get).negativeCache
     let entry := (← get).entries[i]!
     let ctx := (← get).ctx
     -- We disable the current entry to prevent it to be simplified to `True`
     let simpThmsWithoutEntry := (← getSimpTheorems).eraseTheorem entry.id
     let ctx := { ctx with simpTheorems := simpThmsWithoutEntry }
-    let (r, stats, _) ← simpStep (← get).mvarId entry.proof entry.type ctx simprocs (stats := { (← get) with })
-    modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag }
+    let (r, stats, negativeCache') ← simpStep (← get).mvarId entry.proof entry.type ctx simprocs (stats := { (← get) with }) (negativeCache := negativeCache)
+    modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, negativeCache := negativeCache', cacheHits := s.cacheHits.mergeCacheHits stats.cacheHits }
     match r with
     | none => return true -- closed the goal
     | some (proofNew, typeNew) =>
@@ -103,8 +106,9 @@ private partial def loop : M Bool := do
         }
   -- simplify target
   let mvarId := (← get).mvarId
-  let (r, stats, _) ← simpTarget mvarId (← get).ctx simprocs (stats := { (← get) with })
-  modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag }
+  let negativeCache := (← get).negativeCache
+  let (r, stats, negativeCache') ← simpTarget mvarId (← get).ctx simprocs (stats := { (← get) with }) (negativeCache := negativeCache)
+  modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, negativeCache := negativeCache', cacheHits := s.cacheHits.mergeCacheHits stats.cacheHits }
   match r with
   | none => return true
   | some mvarIdNew =>
@@ -144,12 +148,12 @@ def main : M (Option MVarId) := do
 
 end SimpAll
 
-def simpAll (mvarId : MVarId) (ctx : Simp.Context) (simprocs : SimprocsArray := #[]) (stats : Stats := {}) : MetaM (Option MVarId × Stats) := do
+def simpAll (mvarId : MVarId) (ctx : Simp.Context) (simprocs : SimprocsArray := #[]) (stats : Stats := {}) (negativeCache : Simp.NegativeCache := {}): MetaM (Option MVarId × Stats × Simp.NegativeCache) := do
   mvarId.withContext do
-    let (r, s) ← SimpAll.main.run { stats with mvarId, ctx, simprocs }
+    let (r, s) ← SimpAll.main.run { stats with mvarId, ctx, simprocs, negativeCache }
     if let .some mvarIdNew := r then
       if ctx.config.failIfUnchanged && mvarId == mvarIdNew then
         throwError "simp_all made no progress"
-    return (r, { s with })
+    return (r, { s with }, s.negativeCache)
 
 end Aesop
