@@ -273,10 +273,10 @@ where
       catch _ =>
         return (ctx, simprocs)
   normSimpCore' (newGoal : MVarId) (interimResult : SimpResult) (interimSimps: Simp.UsedSimps) (preState: SavedState) (ctx : Simp.Context) (simprocs : Simp.SimprocsArray)
-    (goalMVars : HashSet MVarId) (negativeCache': Simp.NegativeCache) (cacheHits : Simp.CacheHits) : NormM (NormRuleResult × Simp.NegativeCache × Simp.CacheHits) := do
+    (goalMVars : HashSet MVarId) (negativeCache': Simp.NegativeCache) (interimCacheHits : Simp.CacheHits) : NormM (NormRuleResult × Simp.NegativeCache × Simp.CacheHits) := do
     let normCtx := (← read).normSimpContext
     newGoal.withContext do
-    let (result) ←
+    let (result, cacheHits) ←
       if normCtx.useHyps then
         --TODO initial stats
         Aesop.simpAll' newGoal ctx simprocs
@@ -287,7 +287,7 @@ where
 
     -- It can happen that simp 'solves' the goal but leaves some mvars
     -- unassigned. In this case, we treat the goal as unchanged.
-    let result ←
+    let (result) ←
       match result with
       | .solved usedSimps =>
         let anyMVarDropped ← goalMVars.anyM (notM ·.isAssignedOrDelayedAssigned)
@@ -309,7 +309,7 @@ where
 
     let postState ← saveState
     let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
-    pure (normResult, negativeCache', cacheHits)
+    pure (normResult, negativeCache', interimCacheHits.mergeCacheHits cacheHits)
 
 @[inline, always_inline]
 def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)

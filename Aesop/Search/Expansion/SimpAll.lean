@@ -31,6 +31,7 @@ structure State where
   simprocs     : SimprocsArray
   usedTheorems : Simp.UsedSimps := {}
   diag         : Simp.Diagnostics := {}
+  cacheHits    : Simp.CacheHits := {}
 
 abbrev M := StateRefT State MetaM
 
@@ -64,7 +65,7 @@ private partial def loop : M Bool := do
     let simpThmsWithoutEntry := (← getSimpTheorems).eraseTheorem entry.id
     let ctx := { ctx with simpTheorems := simpThmsWithoutEntry }
     let (r, stats, _) ← simpStep (← get).mvarId entry.proof entry.type ctx simprocs (stats := { (← get) with })
-    modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag }
+    modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, cacheHits := stats.cacheHits}
     match r with
     | none => return true -- closed the goal
     | some (proofNew, typeNew) =>
@@ -104,7 +105,7 @@ private partial def loop : M Bool := do
   -- simplify target
   let mvarId := (← get).mvarId
   let (r, stats, _) ← simpTarget mvarId (← get).ctx simprocs (stats := { (← get) with })
-  modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag }
+  modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, cacheHits := stats.cacheHits }
   match r with
   | none => return true
   | some mvarIdNew =>
