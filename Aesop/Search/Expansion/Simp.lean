@@ -83,12 +83,12 @@ def addLetDeclsToSimpTheoremsUnlessZetaDelta (ctx : Simp.Context) :
 def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
     (simplifyTarget : Bool := true) (fvarIdsToSimp : Array FVarId := #[])
-    (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}): MetaM (SimpResult × Simp.NegativeCache × Simp.CacheHits) := do
+    (stats : Simp.Stats := {}) (cache : Simp.Cache := {}): MetaM (SimpResult × Simp.Cache × Simp.CacheHits) := do
   let mvarIdOld := mvarId
   let ctx := { ctx with config.failIfUnchanged := false }
   let (result, stats, negativeCache) ←
     Meta.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
-      stats negativeCache
+      stats cache
   if let some (_, mvarId) := result then
     if mvarId == mvarIdOld then
       return (.unchanged mvarId, negativeCache, stats.cacheHits)
@@ -99,7 +99,7 @@ def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
 
 def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
-    (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}):
+    (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (cache : Simp.Cache := {}):
     MetaM (SimpResult):=
   mvarId.withContext do
     let lctx ← getLCtx
@@ -110,18 +110,18 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
       fvarIdsToSimp := fvarIdsToSimp.push ldecl.fvarId
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
     let (r, _) <- Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
-      stats negativeCache
+      stats cache
     return r
 
 --no discharge? param, since we always want none here
 --TODO can simplifyTarget also be removed and always be set to true?
 def simpStarAtStar (mvarId : MVarId) (ctx : Simp.Context)
-    (simprocs : Simp.SimprocsArray) (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache := {}):
-    MetaM (SimpResult × Simp.NegativeCache × Simp.CacheHits):=
+    (simprocs : Simp.SimprocsArray) (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (cache : Simp.Cache := {}):
+    MetaM (SimpResult × Simp.Cache × Simp.CacheHits):=
   mvarId.withContext do
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
     Aesop.simpGoal mvarId ctx simprocs none simplifyTarget (<- mvarId.getNondepPropHyps)
-      stats negativeCache
+      stats cache
 
 
 def simpAll' (mvarId : MVarId) (ctx : Simp.Context)
