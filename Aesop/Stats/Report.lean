@@ -42,10 +42,11 @@ protected def default : StatsReport := λ statsArray => Id.run do
      Rule set construction: {fmtTime ruleSetConstruction samples}\n\
      Rule selection:        {fmtTime ruleSelection samples}\n\
      Search:                {fmtTime search samples}\n\
-     Simp CacheHits:
-      Negative: {cacheHits.negativeCacheHits}
-      Both: {cacheHits.bothCacheHits}
-      Positive: {cacheHits.positiveCacheHits}
+     Simp CacheHits / Hitrate:
+     Negative: {cacheHits.negativeCacheHits} => {(cacheHits.negativeCacheHits / cacheHits.simpCalls) * 100}%
+     Both: {cacheHits.bothCacheHits} => {(cacheHits.bothCacheHits / cacheHits.simpCalls) * 100}%
+     Positive: {cacheHits.positiveCacheHits} => {(cacheHits.positiveCacheHits / cacheHits.simpCalls) * 100}%
+     in {cacheHits.simpCalls} total simpCalls => {((cacheHits.negativeCacheHits+cacheHits.bothCacheHits+cacheHits.positiveCacheHits) /cacheHits.simpCalls)*100}%
      Rules:{Std.Format.indentD $ fmtRuleStats $ sortRuleStatsTotals $ ruleStats.toArray}"
 where
   fmtTime (n : Nanos) (samples : Nat) : Format :=
