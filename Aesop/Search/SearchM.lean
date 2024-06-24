@@ -31,8 +31,10 @@ structure Context where
   statsRef : StatsRef
   deriving Nonempty
 
+def x : SExprMap Simp.Result := (SMap.insert {} (Expr.lit (.strVal "aesop")) (Simp.Result.mk (Expr.lit (.strVal "aesop")) none true))
+
 structure State (Q) [Aesop.Queue Q] where
-  negativeCache : Simp.NegativeCache := {}
+  cache : Simp.Cache := x
   iteration : Iteration
   queue : Q
   maxRuleApplicationDepthReached : Bool
@@ -121,13 +123,13 @@ def getIteration : SearchM Q Iteration :=
 def incrementIteration : SearchM Q Unit :=
   modify λ s => { s with iteration := s.iteration.succ }
 
-def getAndResetNegativeCache : SearchM Q Simp.NegativeCache := do
-  let oldS ← getModify λ s => { s with negativeCache := {} }
-  pure oldS.negativeCache
+def getAndResetCache : SearchM Q Simp.Cache := do
+  let oldS ← getModify λ s => { s with cache := {} }
+  pure oldS.cache
 
-def setNegativeCache (negativeCache: Simp.NegativeCache) : SearchM Q Unit :=
+def setCache (cache: Simp.Cache) : SearchM Q Unit :=
   --TODO can there be duplicates?
-  modify λ s => {s with negativeCache := negativeCache}
+  modify λ s => {s with cache := cache}
 
 def popGoal? : SearchM Q (Option GoalRef) := do
   let s ← get
