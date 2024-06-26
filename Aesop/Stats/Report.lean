@@ -43,7 +43,8 @@ protected def default : StatsReport := λ statsArray => Id.run do
      Rule selection:        {fmtTime ruleSelection samples}\n\
      Search:                {fmtTime search samples}\n\
      Simp CacheHits / Hitrate:
-      {cacheHits.cacheHits} cacheHits in {cacheHits.simpCalls} total simpCalls => {(cacheHits.cacheHits / cacheHits.simpCalls)*100}%
+     {cacheHits.cacheHits} cacheHits in {cacheHits.simpCalls} total simpCalls => {(cacheHits.cacheHits /cacheHits.simpCalls)*100}%
+     {cacheHits.cacheHits - cacheHits.nonPassedCacheHits} cacheHits only in nonPassed cache => {((cacheHits.cacheHits - cacheHits.nonPassedCacheHits) /cacheHits.simpCalls)*100}%
      Rules:{Std.Format.indentD $ fmtRuleStats $ sortRuleStatsTotals $ ruleStats.toArray}"
 where
   fmtTime (n : Nanos) (samples : Nat) : Format :=

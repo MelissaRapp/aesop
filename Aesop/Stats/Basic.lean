@@ -138,7 +138,8 @@ def trace (p : Stats) (opt : TraceOption) : CoreM Unit := do
   aesop_trace![opt] "Configuration parsing: {p.configParsing.printAsMillis}"
   aesop_trace![opt] "Rule set construction: {p.ruleSetConstruction.printAsMillis}"
   aesop_trace![opt] "Simp CacheHits / Hitrate:
-    {p.cacheHits.cacheHits} cacheHits in {p.cacheHits.simpCalls} total simpCalls => {(p.cacheHits.cacheHits /p.cacheHits.simpCalls)*100}%"
+   {p.cacheHits.cacheHits} cacheHits in {p.cacheHits.simpCalls} total simpCalls => {(p.cacheHits.cacheHits /p.cacheHits.simpCalls)*100}%
+   {p.cacheHits.cacheHits - p.cacheHits.nonPassedCacheHits} cacheHits only in nonPassed cache => {((p.cacheHits.cacheHits - p.cacheHits.nonPassedCacheHits) /p.cacheHits.simpCalls)*100}%"
   withConstAesopTraceNode opt (collapsed := false)
       (return m!"Search: {p.search.printAsMillis}") do
     aesop_trace![opt] "Rule selection: {p.ruleSelection.printAsMillis}"
