@@ -100,7 +100,7 @@ def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
 def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
     (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (cache : Simp.Cache := {}):
-    MetaM (SimpResult):=
+    MetaM (SimpResult × Simp.CacheHits):=
   mvarId.withContext do
     let lctx ← getLCtx
     let mut fvarIdsToSimp := Array.mkEmpty lctx.decls.size
@@ -109,9 +109,9 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
         continue
       fvarIdsToSimp := fvarIdsToSimp.push ldecl.fvarId
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
-    let (r, _) <- Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
+    let (r, _, cacheHits) <- Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
       stats cache
-    return r
+    return (r,cacheHits)
 
 --no discharge? param, since we always want none here
 --TODO can simplifyTarget also be removed and always be set to true?
@@ -126,16 +126,16 @@ def simpStarAtStar (mvarId : MVarId) (ctx : Simp.Context)
 
 def simpAll' (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) :
-    MetaM SimpResult :=
+    MetaM (SimpResult × Simp.CacheHits) :=
   mvarId.withContext do
     let ctx := { ctx with config.failIfUnchanged := false }
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
     match ← Aesop.simpAll mvarId ctx simprocs stats  with
-    | (none, stats) => return .solved stats.usedTheorems
+    | (none, stats) => return (.solved stats.usedTheorems, stats.cacheHits)
     | (some mvarIdNew, stats) =>
       if mvarIdNew == mvarId then
-        return .unchanged mvarIdNew
+        return (.unchanged mvarIdNew, stats.cacheHits)
       else
-        return .simplified mvarIdNew stats.usedTheorems
+        return (.simplified mvarIdNew stats.usedTheorems, stats.cacheHits)
 
 end Aesop

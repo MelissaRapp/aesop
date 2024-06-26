@@ -276,7 +276,7 @@ where
     (goalMVars : HashSet MVarId) (cache': Simp.Cache) (cacheHits : Simp.CacheHits) : NormM (NormRuleResult × Simp.Cache × Simp.CacheHits) := do
     let normCtx := (← read).normSimpContext
     newGoal.withContext do
-    let (result) ←
+    let (result, cacheHits') ←
       if normCtx.useHyps then
         --TODO initial stats
         Aesop.simpAll' newGoal ctx simprocs
@@ -309,7 +309,7 @@ where
 
     let postState ← saveState
     let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
-    pure (normResult, cache', cacheHits)
+    pure (normResult, cache', cacheHits.mergeCacheHits cacheHits')
 
 @[inline, always_inline]
 def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
