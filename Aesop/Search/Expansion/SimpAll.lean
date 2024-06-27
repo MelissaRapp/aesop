@@ -96,9 +96,28 @@ private partial def loop : M Bool := do
            we have theorems marked with `rfl`.
         -/
         trace[Meta.Tactic.simp.all] "entry.id: {← ppOrigin entry.id}, {entry.type} => {typeNew}"
+        trace[Meta.Tactic.simp.negativeCache] "entry.id: {← ppOrigin entry.id}, {entry.type} => {typeNew}"
         let mut simpThmsNew := (← getSimpTheorems).eraseTheorem (.fvar entry.fvarId)
         let idNew ← mkFreshId
         simpThmsNew ← simpThmsNew.addTheorem (.other idNew) (← mkExpectedTypeHint proofNew typeNew)
+        let simpThmsNewOnly ← ({}:SimpTheoremsArray).addTheorem (.other idNew) (← mkExpectedTypeHint proofNew typeNew)
+        cache.forM fun x y => do
+          let mut xyz := (<-get).cache
+          for thms in simpThmsNewOnly do
+            unless thms.pre.size == 0 &&  thms.post.size == 0 do
+              let pre := thms.pre
+              let post := thms.post
+              let rw := (<- (((Simp.rewrite? x pre {} "" false).run ({}: Simp.Methods).toMethodsRef).run ctx).run {stats with}).fst
+              let rw2 := (<- (((Simp.rewrite? x post {} "" false).run ({}: Simp.Methods).toMethodsRef).run ctx).run {stats with}).fst
+              let rw3 := (<- (((Simp.rewrite? y.expr pre {} "" false).run ({}: Simp.Methods).toMethodsRef).run ctx).run {stats with}).fst
+              let rw4 := (<- (((Simp.rewrite? y.expr post {} "" false).run ({}: Simp.Methods).toMethodsRef).run ctx).run {stats with}).fst
+              if let some z := rw then xyz := cache.insert x z trace[Meta.Tactic.simp.negativeCache] "cacheRw1 {x} => {z.expr}" trace[Meta.Tactic.simp.negativeCache] "cacheRw1 {repr x} => {repr z.expr}"
+              else if let some z2 := rw2 then xyz := cache.insert x z2 trace[Meta.Tactic.simp.negativeCache] "cacheRw2 {x} => {z2.expr}" trace[Meta.Tactic.simp.negativeCache] "cacheRw2 {repr x} => {repr z2.expr}"
+              else if let some z3 := rw3 then xyz := cache.insert x z3 trace[Meta.Tactic.simp.negativeCache] "cacheRw3 {x} => {z3.expr}" trace[Meta.Tactic.simp.negativeCache] "cacheRw3 {repr x} => {repr z3.expr}"
+              else if let some z4 := rw4 then xyz := cache.insert x z4 trace[Meta.Tactic.simp.negativeCache] "cacheRw4 {x} => {z4.expr}" trace[Meta.Tactic.simp.negativeCache] "cacheRw4 {repr x} => {repr z4.expr}"
+              -- let hm : HashMap Expr Simp.Result := {}
+              -- if x.isFVar && rwt then xyz := SMap.fromHashMap ((xyz.map₁.toArray.filter fun (x2, _) => (!x2.hasAnyFVar fun f => f == x.fvarId!)).foldl (fun x => fun y => x.insert y.fst y.snd ) (hm))
+          modify fun s => { s with cache := xyz}
         modify fun s => { s with
           modified         := true
           ctx.simpTheorems := simpThmsNew
@@ -151,9 +170,12 @@ end SimpAll
 def simpAll (mvarId : MVarId) (ctx : Simp.Context) (simprocs : SimprocsArray := #[]) (stats : Stats := {}) (cache : Simp.Cache := {}): MetaM (Option MVarId × Stats × Simp.Cache) := do
   mvarId.withContext do
     let (r, s) ← SimpAll.main.run { stats with mvarId, ctx, simprocs, cache }
+    let depHyps := (←  mvarId.withContext do getPropHyps)
+    let hm : HashMap Expr Simp.Result := {}
+    let cache := SMap.fromHashMap ((s.cache.map₁.toArray.filter fun (x2, r) => (!r.expr.hasAnyFVar fun f => !depHyps.contains f) && (!x2.hasAnyFVar fun f => !depHyps.contains f)).foldl (fun x => fun y => x.insert y.fst y.snd ) (hm))
     if let .some mvarIdNew := r then
       if ctx.config.failIfUnchanged && mvarId == mvarIdNew then
         throwError "simp_all made no progress"
-    return (r, { s with }, s.cache)
+    return (r, { s with }, cache)
 
 end Aesop

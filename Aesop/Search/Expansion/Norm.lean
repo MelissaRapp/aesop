@@ -200,6 +200,7 @@ def normSimpCore (goal : MVarId)
     (goalMVars : HashSet MVarId) (cache: Simp.Cache): NormM (NormRuleResult × Simp.Cache × Simp.CacheHits) := do
   let ctx := (← read).normSimpContext
   goal.withContext do
+    trace[Meta.Tactic.simp.negativeCache] "goal: {goal}"
     let preState ← saveState
     let localRules := (← read).ruleSet.localNormSimpRules
     let (result, cache', cacheHits) ←

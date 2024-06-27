@@ -527,11 +527,11 @@ theorem X.eq_nil_iff_forall_not_mem {l : List α} : l = [] ↔ ∀ a, a ∉ l :=
 -- attribute [-simp] map_subset
 theorem X.map_subset {l₁ l₂ : List α} (f : α → β) (H : l₁ ⊆ l₂) : map f l₁ ⊆ map f l₂ := by
   aesop (add norm simp [HasSubset.Subset, List.Subset])
-
+set_option trace.Meta.Tactic.simp.negativeCache true
 theorem map_subset_iff {l₁ l₂ : List α} (f : α → β) (h : Injective f) :
     map f l₁ ⊆ map f l₂ ↔ l₁ ⊆ l₂ := by
   induction l₁ <;> induction l₂ <;> aesop
-
+set_option trace.Meta.Tactic.simp.negativeCache false
 /-! ### append -/
 
 theorem append_eq_has_append {L₁ L₂ : List α} : List.append L₁ L₂ = L₁ ++ L₂ := rfl

@@ -41,7 +41,6 @@ notation "|" t "|" => abs t
 
 @[aesop safe forward (pattern := |a + b|)]
 axiom triangle (a b : Int) : |a + b| ≤ |a| + |b|
---TODO why do names switch?
 example : |a + b| ≤ |c + d| := by
   aesop!
   guard_hyp fwd_1   : |c + d| ≤ |c| + |d|
