@@ -7,6 +7,7 @@ import Lean.Elab.Tactic.Simp
 import Aesop.Options
 import Aesop.Script
 import Aesop.RuleSet
+import Aesop.Search.Expansion.SimpAll
 import Lean.Elab.Tactic.Simp
 
 open Lean Lean.Meta
@@ -82,24 +83,24 @@ def addLetDeclsToSimpTheoremsUnlessZetaDelta (ctx : Simp.Context) :
 def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
     (simplifyTarget : Bool := true) (fvarIdsToSimp : Array FVarId := #[])
-    (stats : Simp.Stats := {}) : MetaM SimpResult := do
+    (stats : Simp.Stats := {}) (cache : Simp.Cache := {}): MetaM (SimpResult × Simp.CacheHits) := do
   let mvarIdOld := mvarId
   let ctx := { ctx with config.failIfUnchanged := false }
-  let (result, { usedTheorems := usedSimps, .. }) ←
+  let (result, stats, _) ←
     Meta.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
-      stats
+      stats cache
   if let some (_, mvarId) := result then
     if mvarId == mvarIdOld then
-      return .unchanged mvarId
+      return (.unchanged mvarId, stats.cacheHits)
     else
-      return .simplified mvarId usedSimps
+      return (.simplified mvarId stats.usedTheorems, stats.cacheHits)
   else
-    return .solved usedSimps
+    return (.solved stats.usedTheorems, stats.cacheHits)
 
 def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
-    (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) :
-    MetaM SimpResult :=
+    (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (cache : Simp.Cache := {}):
+    MetaM (SimpResult × Simp.CacheHits):=
   mvarId.withContext do
     let lctx ← getLCtx
     let mut fvarIdsToSimp := Array.mkEmpty lctx.decls.size
@@ -108,21 +109,22 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
         continue
       fvarIdsToSimp := fvarIdsToSimp.push ldecl.fvarId
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
-    Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
-      stats
+    let (r, cacheHits) <- Aesop.simpGoal mvarId ctx simprocs discharge? simplifyTarget fvarIdsToSimp
+      stats cache
+    return (r, cacheHits)
 
-def simpAll (mvarId : MVarId) (ctx : Simp.Context)
-    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) :
-    MetaM SimpResult :=
+def simpAll' (mvarId : MVarId) (ctx : Simp.Context)
+    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) (cache : Simp.Cache := {}) :
+    MetaM (SimpResult × Simp.CacheHits) :=
   mvarId.withContext do
     let ctx := { ctx with config.failIfUnchanged := false }
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
-    match ← Lean.Meta.simpAll mvarId ctx simprocs stats with
-    | (none, stats) => return .solved stats.usedTheorems
-    | (some mvarIdNew, stats) =>
+    match ← Aesop.simpAll mvarId ctx simprocs stats (cache := cache) with
+    | (none, stats) => return (.solved stats.usedTheorems, stats.cacheHits)
+    | (some mvarIdNew, stats ) =>
       if mvarIdNew == mvarId then
-        return .unchanged mvarIdNew
+        return (.unchanged mvarIdNew,  stats.cacheHits)
       else
-        return .simplified mvarIdNew stats.usedTheorems
+        return (.simplified mvarIdNew stats.usedTheorems,  stats.cacheHits)
 
 end Aesop

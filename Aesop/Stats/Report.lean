@@ -24,6 +24,7 @@ protected def default : StatsReport := λ statsArray => Id.run do
   let mut search := 0
   let mut ruleSelection := 0
   let mut ruleStats : HashMap DisplayRuleName RuleStatsTotals := ∅
+  let mut cacheHits : Lean.Meta.Simp.CacheHits := {}
   for stats in statsArray do
     let stats := stats.stats
     total := total + stats.total
@@ -32,6 +33,7 @@ protected def default : StatsReport := λ statsArray => Id.run do
     search := search + stats.search
     ruleSelection := ruleSelection + stats.ruleSelection
     ruleStats := stats.ruleStatsTotals (init := ruleStats)
+    cacheHits := cacheHits.mergeCacheHits stats.cacheHits
   let samples := statsArray.size
   f!"Statistics for {statsArray.size} Aesop calls in current and imported modules\n\
      Displaying totals and [averages] in milliseconds\n\
@@ -40,6 +42,9 @@ protected def default : StatsReport := λ statsArray => Id.run do
      Rule set construction: {fmtTime ruleSetConstruction samples}\n\
      Rule selection:        {fmtTime ruleSelection samples}\n\
      Search:                {fmtTime search samples}\n\
+     Simp CacheHits / Hitrate:
+     {cacheHits.cacheHits} cacheHits in {cacheHits.simpCalls} total simpCalls => {(cacheHits.cacheHits /cacheHits.simpCalls)*100}%
+     {cacheHits.cacheHits - cacheHits.nonPassedCacheHits} cacheHits only in nonPassed cache => {((cacheHits.cacheHits - cacheHits.nonPassedCacheHits) /cacheHits.simpCalls)*100}%
      Rules:{Std.Format.indentD $ fmtRuleStats $ sortRuleStatsTotals $ ruleStats.toArray}"
 where
   fmtTime (n : Nanos) (samples : Nat) : Format :=

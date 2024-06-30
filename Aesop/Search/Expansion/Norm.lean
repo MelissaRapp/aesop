@@ -74,6 +74,19 @@ def withNormTraceNode (ruleName : DisplayRuleName) (k : NormM NormRuleResult) :
       let emoji := exceptRuleResultToEmoji (·.toEmoji) r
       return m!"{emoji} {ruleName}"
 
+@[inline, always_inline]
+def withNormTraceNodeHits (ruleName : DisplayRuleName) (k : NormM (NormRuleResult × Simp.CacheHits)) :
+    NormM (NormRuleResult × Simp.CacheHits ):=
+  withAesopTraceNode .steps fmt do
+    let (result, cacheHits) ← k
+    if let some newGoal := result.newGoal? then
+      aesop_trace[steps] newGoal
+    return (result, cacheHits)
+  where
+    fmt (r : Except Exception (NormRuleResult × Simp.CacheHits )) : NormM MessageData := do
+      let emoji := exceptRuleResultToEmoji (·.fst.toEmoji) r
+      return m!"{emoji} {ruleName}"
+
 def mkNormRuleTacticInvocation (ruleName : RuleName)
     (scriptBuilder? : Option RuleTacScriptBuilder)
     (preGoal : MVarId) (outGoal? : Option GoalWithMVars)
@@ -183,17 +196,17 @@ def SimpResult.toNormRuleResult (ruleName : DisplayRuleName)
         return .error ruleName
 
 def normSimpCore (goal : MVarId)
-    (goalMVars : HashSet MVarId) : NormM NormRuleResult := do
+    (goalMVars : HashSet MVarId) : NormM (NormRuleResult × Simp.CacheHits) := do
   let ctx := (← read).normSimpContext
   goal.withContext do
     let preState ← saveState
     let localRules := (← read).ruleSet.localNormSimpRules
-    let result ←
+    let (result, cacheHits) ←
       if ctx.useHyps then
         let (ctx, simprocs) ←
           addLocalRules localRules ctx.toContext ctx.simprocs
             (isSimpAll := true)
-        Aesop.simpAll goal ctx simprocs
+        Aesop.simpAll' goal ctx simprocs
       else
         let (ctx, simprocs) ←
           addLocalRules localRules ctx.toContext ctx.simprocs
@@ -219,7 +232,8 @@ def normSimpCore (goal : MVarId)
         pure result
 
     let postState ← saveState
-    result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
+    let normResult <- result.toNormRuleResult .normSimp ⟨goal, goalMVars⟩ preState postState
+    pure (normResult, cacheHits)
 where
   addLocalRules (localRules : Array LocalNormSimpRule) (ctx : Simp.Context)
       (simprocs : Simp.SimprocsArray) (isSimpAll : Bool) :
@@ -253,16 +267,40 @@ def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
         throwError "{Check.rules.name}: {name} solved the goal"
     return result
 
+@[inline, always_inline]
+def checkSimpHits (name : String) (mayCloseGoal : Bool) (goal : MVarId)
+    (x : NormM (NormRuleResult × Simp.CacheHits)) : NormM (NormRuleResult × Simp.CacheHits):= do
+  if ! (← Check.rules.isEnabled) then
+    x
+  else
+    let preMetaState ← saveState
+    let (result, hits) ← x
+    let newGoal? := result.newGoal?
+    let postMetaState ← saveState
+    let introduced :=
+        (← getIntroducedExprMVars preMetaState postMetaState).filter
+        (some · != newGoal?)
+    unless introduced.isEmpty do throwError
+        "{Check.rules.name}: {name} introduced mvars:{introduced.map (·.name)}"
+    let assigned :=
+        (← getAssignedExprMVars preMetaState postMetaState).filter (· != goal)
+    unless assigned.isEmpty do throwError
+        "{Check.rules.name}: {name} assigned mvars:{introduced.map (·.name)}"
+    if ← pure (! mayCloseGoal && newGoal?.isNone) <&&> goal.isAssigned then
+        throwError "{Check.rules.name}: {name} solved the goal"
+    return (result, hits)
+
 def normSimp (goal : MVarId) (goalMVars : HashSet MVarId) :
     NormM NormRuleResult := do
-  profilingRule .normSimp (wasSuccessful := λ _ => true) do
-    checkSimp "norm simp" (mayCloseGoal := true) goal do
+  let (result,_) := <- profilingRuleSimp .normSimp (wasSuccessful := λ _ => true) (λ (_,cacheHits) => cacheHits) do
+    checkSimpHits "norm simp" (mayCloseGoal := true) goal do
       try
-        withNormTraceNode .normSimp do
+        withNormTraceNodeHits .normSimp do
           withMaxHeartbeats (← read).options.maxSimpHeartbeats do
             normSimpCore goal goalMVars
       catch e =>
         throwError "aesop: error in norm simp: {e.toMessageData}"
+  return result
 
 def normUnfoldCore (goal : MVarId) (goalMVars : HashSet MVarId) :
     NormM NormRuleResult := do
