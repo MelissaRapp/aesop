@@ -43,8 +43,17 @@ protected def default : StatsReport := λ statsArray => Id.run do
      Rule selection:        {fmtTime ruleSelection samples}\n\
      Search:                {fmtTime search samples}\n\
      Simp CacheHits / Hitrate:
-     {cacheHits.cacheHits} cacheHits in {cacheHits.simpCalls} total simpCalls => {(cacheHits.cacheHits /cacheHits.simpCalls)*100}%
-     {cacheHits.cacheHits - cacheHits.nonPassedCacheHits} cacheHits only in nonPassed cache => {((cacheHits.cacheHits - cacheHits.nonPassedCacheHits) /cacheHits.simpCalls)*100}%
+     nonPassedCache: {cacheHits.nonPassedCacheHitsNegative} negative => {(cacheHits.nonPassedCacheHitsNegative / cacheHits.simpCalls) * 100}%
+     + {cacheHits.nonPassedCacheHitsPositive} positive => {(cacheHits.nonPassedCacheHitsPositive  / cacheHits.simpCalls)*100}%
+     = {cacheHits.nonPassedCacheHitsNegative+cacheHits.nonPassedCacheHitsPositive} => {((cacheHits.nonPassedCacheHitsNegative+cacheHits.nonPassedCacheHitsPositive)/ cacheHits.simpCalls)*100}%
+     passedCache correct: {cacheHits.cacheHitsNegativeCorrect} negative => {(cacheHits.cacheHitsNegativeCorrect / cacheHits.simpCalls) * 100}%
+     + {cacheHits.cacheHitsPositiveCorrect} positive => {(cacheHits.cacheHitsPositiveCorrect  / cacheHits.simpCalls)*100}%
+     = {cacheHits.cacheHitsNegativeCorrect+cacheHits.cacheHitsPositiveCorrect} => {((cacheHits.cacheHitsNegativeCorrect+cacheHits.cacheHitsPositiveCorrect)/ cacheHits.simpCalls)*100}%
+     passedCache incorrect:
+     {cacheHits.cacheHitsNegativeIncorrect} negative => {(cacheHits.cacheHitsNegativeIncorrect / cacheHits.simpCalls) * 100}%
+     + {cacheHits.cacheHitsPositiveIncorrect} positive => {(cacheHits.cacheHitsPositiveIncorrect  / cacheHits.simpCalls)*100}%
+     = {cacheHits.cacheHitsNegativeIncorrect+cacheHits.cacheHitsPositiveIncorrect} => {((cacheHits.cacheHitsNegativeIncorrect+cacheHits.cacheHitsPositiveIncorrect)/ cacheHits.simpCalls)*100}%
+     in {cacheHits.simpCalls} total simpcalls
      Rules:{Std.Format.indentD $ fmtRuleStats $ sortRuleStatsTotals $ ruleStats.toArray}"
 where
   fmtTime (n : Nanos) (samples : Nat) : Format :=

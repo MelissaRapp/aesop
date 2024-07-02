@@ -138,8 +138,17 @@ def trace (p : Stats) (opt : TraceOption) : CoreM Unit := do
   aesop_trace![opt] "Configuration parsing: {p.configParsing.printAsMillis}"
   aesop_trace![opt] "Rule set construction: {p.ruleSetConstruction.printAsMillis}"
   aesop_trace![opt] "Simp CacheHits / Hitrate:
-   {p.cacheHits.cacheHits} cacheHits in {p.cacheHits.simpCalls} total simpCalls => {(p.cacheHits.cacheHits /p.cacheHits.simpCalls)*100}%
-   {p.cacheHits.cacheHits - p.cacheHits.nonPassedCacheHits} cacheHits only in nonPassed cache => {((p.cacheHits.cacheHits - p.cacheHits.nonPassedCacheHits) /p.cacheHits.simpCalls)*100}%"
+     nonPassedCache: {p.cacheHits.nonPassedCacheHitsNegative} negative => {(p.cacheHits.nonPassedCacheHitsNegative / p.cacheHits.simpCalls) * 100}
+     + {p.cacheHits.nonPassedCacheHitsPositive} positive => {(p.cacheHits.nonPassedCacheHitsPositive  / p.cacheHits.simpCalls)*100}%
+     = {p.cacheHits.nonPassedCacheHitsNegative+p.cacheHits.nonPassedCacheHitsPositive} => {((p.cacheHits.nonPassedCacheHitsNegative+p.cacheHits.nonPassedCacheHitsPositive)/ p.cacheHits.simpCalls)*100}
+     passedCache correct: {p.cacheHits.cacheHitsNegativeCorrect} negative => {(p.cacheHits.cacheHitsNegativeCorrect / p.cacheHits.simpCalls) * 100}%
+     + {p.cacheHits.cacheHitsPositiveCorrect} positive => {(p.cacheHits.cacheHitsPositiveCorrect  / p.cacheHits.simpCalls)*100}%
+     = {p.cacheHits.cacheHitsNegativeCorrect+p.cacheHits.cacheHitsPositiveCorrect} => {((p.cacheHits.cacheHitsNegativeCorrect+p.cacheHits.cacheHitsPositiveCorrect)/ p.cacheHits.simpCalls)*100}%
+     passedCache incorrect:
+     {p.cacheHits.cacheHitsNegativeIncorrect} negative => {(p.cacheHits.cacheHitsNegativeIncorrect / p.cacheHits.simpCalls) * 100}%
+     + {p.cacheHits.cacheHitsPositiveIncorrect} positive => {(p.cacheHits.cacheHitsPositiveIncorrect  / p.cacheHits.simpCalls)*100}%
+     = {p.cacheHits.cacheHitsNegativeIncorrect+p.cacheHits.cacheHitsPositiveIncorrect} => {((p.cacheHits.cacheHitsNegativeIncorrect+p.cacheHits.cacheHitsPositiveIncorrect)/ p.cacheHits.simpCalls)*100}%
+     in {p.cacheHits.simpCalls} total simpcalls"
   withConstAesopTraceNode opt (collapsed := false)
       (return m!"Search: {p.search.printAsMillis}") do
     aesop_trace![opt] "Rule selection: {p.ruleSelection.printAsMillis}"
