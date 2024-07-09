@@ -7,6 +7,7 @@ prelude
 import Lean.Meta.Tactic.Clear
 import Lean.Meta.Tactic.Util
 import Lean.Meta.Tactic.Simp.Main
+import Aesop.Util
 
 namespace Aesop
 open Lean Lean.Meta
@@ -148,9 +149,19 @@ def main : M (Option MVarId) := do
 
 end SimpAll
 
+def notConditional (thm : SimpTheorem) : Bool :=
+  !thm.proof.isForall
+
+def removeConditionalThms (thms: SimpTheorems) : SimpTheorems :=
+  let nonCondPre := (filterDiscrTree (fun x => notConditional x) (fun _ _ => ()) () thms.pre).fst
+  let nonCondPost := (filterDiscrTree (fun x => notConditional x) (fun _ _ => ()) () thms.post).fst
+  {thms with pre := nonCondPre, post := nonCondPost}
+
 def simpAll (mvarId : MVarId) (ctx : Simp.Context) (simprocs : SimprocsArray := #[]) (stats : Stats := {}) (cache : Simp.Cache := {}): MetaM (Option MVarId × Stats × Simp.Cache) := do
   mvarId.withContext do
-    let (r, s) ← SimpAll.main.run { stats with mvarId, ctx, simprocs, cache }
+    let thms' := ctx.simpTheorems.map fun thms => removeConditionalThms thms
+    let ctx' := {ctx with simpTheorems := thms' }
+    let (r, s) ← SimpAll.main.run { stats with mvarId, ctx := ctx' , simprocs, cache }
     if let .some mvarIdNew := r then
       if ctx.config.failIfUnchanged && mvarId == mvarIdNew then
         throwError "simp_all made no progress"
