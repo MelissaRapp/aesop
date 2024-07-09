@@ -54,6 +54,7 @@ protected def default : StatsReport := λ statsArray => Id.run do
      + {cacheHits.cacheHitsPositiveIncorrect} positive => {(cacheHits.cacheHitsPositiveIncorrect  / cacheHits.simpCalls)*100}%
      = {cacheHits.cacheHitsNegativeIncorrect+cacheHits.cacheHitsPositiveIncorrect} => {((cacheHits.cacheHitsNegativeIncorrect+cacheHits.cacheHitsPositiveIncorrect)/ cacheHits.simpCalls)*100}%
      in {cacheHits.simpCalls} total simpcalls
+     wrong: {repr cacheHits.wrong}
      Rules:{Std.Format.indentD $ fmtRuleStats $ sortRuleStatsTotals $ ruleStats.toArray}"
 where
   fmtTime (n : Nanos) (samples : Nat) : Format :=
