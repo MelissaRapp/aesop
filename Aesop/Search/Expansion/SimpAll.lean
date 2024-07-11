@@ -33,6 +33,7 @@ structure State where
   diag         : Simp.Diagnostics := {}
   cache: Simp.Cache := {}
   cacheHits    : Simp.CacheHits := {}
+  newThms : SimpTheoremsArray := {}
 
 abbrev M := StateRefT State MetaM
 
@@ -40,11 +41,13 @@ private def initEntries : M Unit := do
   let hs := (←  (← get).mvarId.withContext do getPropHyps)
   let hsNonDeps ← (← get).mvarId.getNondepPropHyps
   let mut simpThms := (← get).ctx.simpTheorems
+  let mut newThms := (← get).newThms
   for h in hs do
     unless simpThms.isErased (.fvar h) do
       let localDecl ← h.getDecl
       let proof  := localDecl.toExpr
       simpThms ← simpThms.addTheorem (.fvar h) proof
+      newThms <- newThms.addTheorem (.fvar h) proof
       modify fun s => { s with ctx.simpTheorems := simpThms }
       if hsNonDeps.contains h then
         -- We only simplify nondependent hypotheses
@@ -66,7 +69,7 @@ private partial def loop : M Bool := do
     -- We disable the current entry to prevent it to be simplified to `True`
     let simpThmsWithoutEntry := (← getSimpTheorems).eraseTheorem entry.id
     let ctx := { ctx with simpTheorems := simpThmsWithoutEntry }
-    let (r, stats, cache') ← simpStep (← get).mvarId entry.proof entry.type ctx simprocs (stats := { (← get) with }) (cache := cache)
+    let (r, stats, cache') ← simpStep (← get).mvarId entry.proof entry.type ctx simprocs (stats := { (← get) with }) (cache := cache) (newThms :=(<-get).newThms)
     modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, cache := cache', cacheHits := stats.cacheHits }
     match r with
     | none => return true -- closed the goal
@@ -99,15 +102,17 @@ private partial def loop : M Bool := do
         let mut simpThmsNew := (← getSimpTheorems).eraseTheorem (.fvar entry.fvarId)
         let idNew ← mkFreshId
         simpThmsNew ← simpThmsNew.addTheorem (.other idNew) (← mkExpectedTypeHint proofNew typeNew)
+        let newThms' := <- (<-get).newThms.addTheorem (.other idNew) (← mkExpectedTypeHint proofNew typeNew)
         modify fun s => { s with
           modified         := true
           ctx.simpTheorems := simpThmsNew
           entries[i]       := { entry with type := typeNew, proof := proofNew, id := .other idNew }
+          newThms := newThms'
         }
   -- simplify target
   let mvarId := (← get).mvarId
   let cache := (← get).cache
-  let (r, stats, cache') ← simpTarget mvarId (← get).ctx simprocs (stats := { (← get) with }) (cache := cache)
+  let (r, stats, cache') ← simpTarget mvarId (← get).ctx simprocs (stats := { (← get) with }) (cache := cache) (newThms :=(<-get).newThms)
   modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, cache := cache', cacheHits := stats.cacheHits }
   match r with
   | none => return true
