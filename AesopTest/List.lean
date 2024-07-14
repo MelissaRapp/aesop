@@ -15,7 +15,6 @@ import Aesop
 -- We use this constant to 'prove' theorems which Aesop can't solve. We don't
 -- use `sorry` because it generates lots of warnings.
 axiom ADMIT : ∀ {α : Sort _}, α
-
 class IsEmpty (α : Sort _) where
   false : α → False
 
@@ -283,6 +282,7 @@ theorem X.ne_of_not_mem_cons {a b : α} {l : List α} : a ∉ b::l → a ≠ b :
   aesop
 
 -- attribute [-simp] not_mem_of_not_mem_cons
+set_option trace.Meta.Tactic.simp.negativeCache true in
 theorem X.not_mem_of_not_mem_cons {a b : α} {l : List α} : a ∉ b::l → a ∉ l := by
   aesop
 
@@ -291,6 +291,7 @@ theorem X.not_mem_cons_of_ne_of_not_mem {a y : α} {l : List α} : a ≠ y → a
   aesop
 
 -- attribute [-simp] ne_and_not_mem_of_not_mem_cons
+set_option trace.Meta.Tactic.simp.negativeCache true in
 theorem X.ne_and_not_mem_of_not_mem_cons {a y : α} {l : List α} : a ∉ y::l → a ≠ y ∧ a ∉ l := by
   aesop
 
@@ -548,12 +549,13 @@ theorem X.append_ne_nil_of_ne_nil_right (s t : List α) : t ≠ [] → s ++ t �
   induction s <;> aesop
 
 attribute [-simp] append_eq_nil
+set_option trace.Meta.Tactic.simp.negativeCache true in
 @[simp] theorem X.append_eq_nil {p q : List α} : (p ++ q) = [] ↔ p = [] ∧ q = [] := by
   aesop (add 1% cases List)
 
 @[simp] theorem nil_eq_append_iff {a b : List α} : [] = a ++ b ↔ a = [] ∧ b = [] := by
   induction a <;> aesop
-
+set_option trace.Meta.Tactic.simp.negativeCache true in
 theorem append_eq_cons_iff {a b c : List α} {x : α} :
   a ++ b = x :: c ↔ (a = [] ∧ b = x :: c) ∨ (∃a', a = x :: a' ∧ c = a' ++ b) := by
   aesop (add 1% cases List)
@@ -576,6 +578,7 @@ attribute [-simp] take_append_drop
     aesop
 
 -- attribute [-simp] append_inj
+set_option trace.Meta.Tactic.simp.negativeCache true in
 @[aesop safe forward]
 theorem X.append_inj :
   ∀ {s₁ s₂ t₁ t₂ : List α}, s₁ ++ t₁ = s₂ ++ t₂ → length s₁ = length s₂ → s₁ = s₂ ∧ t₁ = t₂
