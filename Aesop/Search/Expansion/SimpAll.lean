@@ -151,9 +151,9 @@ end SimpAll
 
 def notConditional (thm : SimpTheorem) : MetaM (ULift Bool) :=  do
   if let .const declName .. := thm.proof then
-    let .thmInfo info ← getConstInfo declName | return ⟨false⟩
-    return ⟨info.type.isForall⟩
-  pure ⟨(<-inferType thm.proof).isForall⟩
+    let .thmInfo info ← getConstInfo declName | return ⟨true⟩
+    return ⟨!info.type.isForall⟩
+  pure ⟨!(<-inferType thm.proof).isForall⟩
 
 
 def removeConditionalThms (thms: SimpTheorems) : MetaM SimpTheorems := do
