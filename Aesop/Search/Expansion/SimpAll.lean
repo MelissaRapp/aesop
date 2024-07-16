@@ -7,6 +7,7 @@ prelude
 import Lean.Meta.Tactic.Clear
 import Lean.Meta.Tactic.Util
 import Lean.Meta.Tactic.Simp.Main
+import Aesop.Util.Basic
 
 namespace Aesop
 open Lean Lean.Meta
@@ -37,18 +38,31 @@ structure State where
 
 abbrev M := StateRefT State MetaM
 
+def conditional (thm : SimpTheorem) : MetaM (ULift Bool) :=  do
+  if let .const declName .. := thm.proof then
+    let .thmInfo info ← getConstInfo declName | return ⟨false⟩
+    return ⟨info.type.isForall⟩
+  pure ⟨(<-inferType thm.proof).isForall⟩
+
+
+def onlyConditionalThms (thms: SimpTheorems) : MetaM SimpTheorems := do
+  let nonCondPre := (<-(filterDiscrTreeM (fun x =>  conditional x) (fun _ _ => pure ()) () thms.pre)).fst
+  let nonCondPost := (<-(filterDiscrTreeM (fun x => conditional x) (fun _ _ => pure ()) () thms.post)).fst
+  pure {thms with pre := nonCondPre, post := nonCondPost}
+
+
 private def initEntries : M Unit := do
   let hs := (←  (← get).mvarId.withContext do getPropHyps)
   let hsNonDeps ← (← get).mvarId.getNondepPropHyps
   let mut simpThms := (← get).ctx.simpTheorems
-  let mut newThms := (← get).newThms
+  let mut newThms : SimpTheoremsArray := <- (← get).ctx.simpTheorems.mapM fun thms => onlyConditionalThms thms
   for h in hs do
     unless simpThms.isErased (.fvar h) do
       let localDecl ← h.getDecl
       let proof  := localDecl.toExpr
       simpThms ← simpThms.addTheorem (.fvar h) proof
       newThms <- newThms.addTheorem (.fvar h) proof
-      modify fun s => { s with ctx.simpTheorems := simpThms }
+      modify fun s => { s with ctx.simpTheorems := simpThms, newThms := newThms }
       if hsNonDeps.contains h then
         -- We only simplify nondependent hypotheses
         let type ← instantiateMVars localDecl.type
