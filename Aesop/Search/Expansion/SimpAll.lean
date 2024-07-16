@@ -149,17 +149,21 @@ def main : M (Option MVarId) := do
 
 end SimpAll
 
-def notConditional (thm : SimpTheorem) : Bool :=
-  !thm.proof.isForall
+def notConditional (thm : SimpTheorem) : MetaM (ULift Bool) :=  do
+  if let .const declName .. := thm.proof then
+    let .thmInfo info ← getConstInfo declName | return ⟨false⟩
+    return ⟨info.type.isForall⟩
+  pure ⟨(<-inferType thm.proof).isForall⟩
 
-def removeConditionalThms (thms: SimpTheorems) : SimpTheorems :=
-  let nonCondPre := (filterDiscrTree (fun x => notConditional x) (fun _ _ => ()) () thms.pre).fst
-  let nonCondPost := (filterDiscrTree (fun x => notConditional x) (fun _ _ => ()) () thms.post).fst
-  {thms with pre := nonCondPre, post := nonCondPost}
+
+def removeConditionalThms (thms: SimpTheorems) : MetaM SimpTheorems := do
+  let nonCondPre := (<-(filterDiscrTreeM (fun x =>  notConditional x) (fun _ _ => pure ()) () thms.pre)).fst
+  let nonCondPost := (<-(filterDiscrTreeM (fun x => notConditional x) (fun _ _ => pure ()) () thms.post)).fst
+  pure {thms with pre := nonCondPre, post := nonCondPost}
 
 def simpAll (mvarId : MVarId) (ctx : Simp.Context) (simprocs : SimprocsArray := #[]) (stats : Stats := {}) (cache : Simp.Cache := {}): MetaM (Option MVarId × Stats × Simp.Cache) := do
   mvarId.withContext do
-    let thms' := ctx.simpTheorems.map fun thms => removeConditionalThms thms
+    let thms' := <- ctx.simpTheorems.mapM fun thms => removeConditionalThms thms
     let ctx' := {ctx with simpTheorems := thms' }
     let (r, s) ← SimpAll.main.run { stats with mvarId, ctx := ctx' , simprocs, cache }
     if let .some mvarIdNew := r then
