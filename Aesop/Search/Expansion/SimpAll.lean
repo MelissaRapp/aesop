@@ -38,24 +38,11 @@ structure State where
 
 abbrev M := StateRefT State MetaM
 
-def conditional (thm : SimpTheorem) : MetaM (ULift Bool) :=  do
-  if let .const declName .. := thm.proof then
-    let .thmInfo info ← getConstInfo declName | return ⟨false⟩
-    return ⟨info.type.isForall⟩
-  pure ⟨(<-inferType thm.proof).isForall⟩
-
-
-def onlyConditionalThms (thms: SimpTheorems) : MetaM SimpTheorems := do
-  let nonCondPre := (<-(filterDiscrTreeM (fun x =>  conditional x) (fun _ _ => pure ()) () thms.pre)).fst
-  let nonCondPost := (<-(filterDiscrTreeM (fun x => conditional x) (fun _ _ => pure ()) () thms.post)).fst
-  pure {thms with pre := nonCondPre, post := nonCondPost}
-
-
 private def initEntries : M Unit := do
   let hs := (←  (← get).mvarId.withContext do getPropHyps)
   let hsNonDeps ← (← get).mvarId.getNondepPropHyps
   let mut simpThms := (← get).ctx.simpTheorems
-  let mut newThms : SimpTheoremsArray := <- (← get).ctx.simpTheorems.mapM fun thms => onlyConditionalThms thms
+  let mut newThms : SimpTheoremsArray := {}
   for h in hs do
     unless simpThms.isErased (.fvar h) do
       let localDecl ← h.getDecl
