@@ -103,7 +103,8 @@ private partial def loop : M Bool := do
         let mut simpThmsNew := (← getSimpTheorems).eraseTheorem (.fvar entry.fvarId)
         let idNew ← mkFreshId
         simpThmsNew ← simpThmsNew.addTheorem (.other idNew) (← mkExpectedTypeHint proofNew typeNew)
-        let newThms' := <- (<-get).newThms.addTheorem (.other idNew) (← mkExpectedTypeHint proofNew typeNew)
+        let mut newThms' := (<-get).newThms.eraseTheorem (.fvar entry.fvarId)
+        newThms' <- newThms'.addTheorem (.other idNew) (← mkExpectedTypeHint proofNew typeNew)
         modify fun s => { s with
           modified         := true
           ctx.simpTheorems := simpThmsNew
