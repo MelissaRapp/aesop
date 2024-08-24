@@ -31,10 +31,10 @@ structure Context where
   statsRef : StatsRef
   deriving Nonempty
 
-def x : SExprMap Simp.Result := (SMap.insert {} (Expr.lit (.strVal "aesop")) (Simp.Result.mk (Expr.lit (.strVal "aesop")) none true))
+def x : SExprMap (Simp.Result × Array AbstractMVarsResult) := (SMap.insert {} (Expr.lit (.strVal "aesop")) (Simp.Result.mk (Expr.lit (.strVal "aesop")) none true, {}))
 
 structure State (Q) [Aesop.Queue Q] where
-  cache : Simp.Cache := x
+  cache : Simp.CacheD := x
   iteration : Iteration
   queue : Q
   maxRuleApplicationDepthReached : Bool
@@ -123,11 +123,11 @@ def getIteration : SearchM Q Iteration :=
 def incrementIteration : SearchM Q Unit :=
   modify λ s => { s with iteration := s.iteration.succ }
 
-def getAndResetCache : SearchM Q Simp.Cache := do
+def getAndResetCache : SearchM Q Simp.CacheD := do
   let oldS ← getModify λ s => { s with cache := {} }
   pure oldS.cache
 
-def setCache (cache: Simp.Cache) : SearchM Q Unit :=
+def setCache (cache: Simp.CacheD) : SearchM Q Unit :=
   --TODO can there be duplicates?
   modify λ s => {s with cache := cache}
 

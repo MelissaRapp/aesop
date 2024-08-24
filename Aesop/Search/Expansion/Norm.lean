@@ -76,15 +76,15 @@ def withNormTraceNode (ruleName : DisplayRuleName) (k : NormM NormRuleResult) :
 
 --TODO probably just move cache into NormM and remove this later
 @[inline, always_inline]
-def withNormTraceNodeCache (ruleName : DisplayRuleName) (k : NormM (NormRuleResult × Simp.Cache × Simp.CacheHits)) :
-    NormM (NormRuleResult × Simp.Cache × Simp.CacheHits ):=
+def withNormTraceNodeCache (ruleName : DisplayRuleName) (k : NormM (NormRuleResult × Simp.CacheD × Simp.CacheHits)) :
+    NormM (NormRuleResult × Simp.CacheD × Simp.CacheHits ):=
   withAesopTraceNode .steps fmt do
     let (result, cache, cacheHits) ← k
     if let some newGoal := result.newGoal? then
       aesop_trace[steps] newGoal
     return (result, cache, cacheHits)
   where
-    fmt (r : Except Exception (NormRuleResult × Simp.Cache × Simp.CacheHits )) : NormM MessageData := do
+    fmt (r : Except Exception (NormRuleResult × Simp.CacheD × Simp.CacheHits )) : NormM MessageData := do
       let emoji := exceptRuleResultToEmoji (·.fst.toEmoji) r
       return m!"{emoji} {ruleName}"
 
@@ -197,7 +197,7 @@ def SimpResult.toNormRuleResult (ruleName : DisplayRuleName)
         return .error ruleName
 
 def normSimpCore (goal : MVarId)
-    (goalMVars : HashSet MVarId) (cache: Simp.Cache): NormM (NormRuleResult × Simp.Cache × Simp.CacheHits) := do
+    (goalMVars : HashSet MVarId) (cache: Simp.CacheD): NormM (NormRuleResult × Simp.CacheD × Simp.CacheHits) := do
   let ctx := (← read).normSimpContext
   goal.withContext do
     let preState ← saveState
@@ -390,7 +390,7 @@ def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
 --TODO probably just move cache into NormM and remove this later
 @[inline, always_inline]
 def checkSimpCache (name : String) (mayCloseGoal : Bool) (goal : MVarId)
-    (x : NormM (NormRuleResult × Simp.Cache × Simp.CacheHits)) : NormM (NormRuleResult × Simp.Cache × Simp.CacheHits):= do
+    (x : NormM (NormRuleResult × Simp.CacheD × Simp.CacheHits)) : NormM (NormRuleResult × Simp.CacheD × Simp.CacheHits):= do
   if ! (← Check.rules.isEnabled) then
     x
   else
@@ -411,8 +411,8 @@ def checkSimpCache (name : String) (mayCloseGoal : Bool) (goal : MVarId)
         throwError "{Check.rules.name}: {name} solved the goal"
     return (result, cache)
 
-def normSimp (goal : MVarId) (goalMVars : HashSet MVarId) (cache : Simp.Cache ) :
-    NormM (NormRuleResult × Simp.Cache):= do
+def normSimp (goal : MVarId) (goalMVars : HashSet MVarId) (cache : Simp.CacheD ) :
+    NormM (NormRuleResult × Simp.CacheD):= do
   let (r, n, _ ):=  <- profilingRuleSimp .normSimp (wasSuccessful := λ _ => true) (λ (_,_, cacheHits) => cacheHits) do
     checkSimpCache "norm simp" (mayCloseGoal := true) goal do
       try
@@ -468,10 +468,10 @@ inductive NormSeqResult where
 abbrev NormStep :=
   MVarId → Array (IndexMatchResult NormRule) →
   --TODO probably just move cache into NormM and remove this later
-  Array (IndexMatchResult NormRule) → Simp.Cache → NormM  (NormRuleResult × Simp.Cache)
+  Array (IndexMatchResult NormRule) → Simp.CacheD → NormM  (NormRuleResult × Simp.CacheD)
 
 def runNormSteps (goal : MVarId) (steps : Array NormStep)
-    (stepsNe : 0 < steps.size) (cache : Simp.Cache) : NormM (NormSeqResult × Simp.Cache) := do
+    (stepsNe : 0 < steps.size) (cache : Simp.CacheD) : NormM (NormSeqResult × Simp.CacheD) := do
   let ctx ← readThe NormM.Context
   let maxIterations := ctx.options.maxNormIterations
   let mut iteration := 0
@@ -538,7 +538,7 @@ def NormStep.simp (mvars : HashSet MVarId) : NormStep
     normSimp goal mvars cache
 
 partial def normalizeGoalMVar (goal : MVarId)
-    (mvars : UnorderedArraySet MVarId) (cache : Simp.Cache): NormM (NormSeqResult × Simp.Cache):= do
+    (mvars : UnorderedArraySet MVarId) (cache : Simp.CacheD): NormM (NormSeqResult × Simp.CacheD):= do
   let mvarsHashSet := .ofArray mvars.toArray
   let mut normSteps := #[
     NormStep.runPreSimpRules mvars,

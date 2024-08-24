@@ -32,7 +32,7 @@ structure State where
   simprocs     : SimprocsArray
   usedTheorems : Simp.UsedSimps := {}
   diag         : Simp.Diagnostics := {}
-  cache: Simp.Cache := {}
+  cache: Simp.CacheD := {}
   cacheHits    : Simp.CacheHits := {}
   newThms : SimpTheoremsArray := {}
 
@@ -155,7 +155,7 @@ def main : M (Option MVarId) := do
 
 end SimpAll
 
-def simpAll (mvarId : MVarId) (ctx : Simp.Context) (simprocs : SimprocsArray := #[]) (stats : Stats := {}) (cache : Simp.Cache := {}): MetaM (Option MVarId × Stats × Simp.Cache) := do
+def simpAll (mvarId : MVarId) (ctx : Simp.Context) (simprocs : SimprocsArray := #[]) (stats : Stats := {}) (cache : Simp.CacheD := {}): MetaM (Option MVarId × Stats × Simp.CacheD) := do
   mvarId.withContext do
     let (r, s) ← SimpAll.main.run { stats with mvarId, ctx, simprocs, cache }
     if let .some mvarIdNew := r then

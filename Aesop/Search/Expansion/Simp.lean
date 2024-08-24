@@ -83,7 +83,7 @@ def addLetDeclsToSimpTheoremsUnlessZetaDelta (ctx : Simp.Context) :
 def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
     (simplifyTarget : Bool := true) (fvarIdsToSimp : Array FVarId := #[])
-    (stats : Simp.Stats := {}) (cache : Simp.Cache := {}): MetaM (SimpResult × Simp.Cache × Simp.CacheHits) := do
+    (stats : Simp.Stats := {}) (cache : Simp.CacheD := {}): MetaM (SimpResult × Simp.CacheD × Simp.CacheHits) := do
   let mvarIdOld := mvarId
   let ctx := { ctx with config.failIfUnchanged := false }
   let (result, stats, cache) ←
@@ -99,8 +99,8 @@ def simpGoal (mvarId : MVarId) (ctx : Simp.Context)
 
 def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (discharge? : Option Simp.Discharge := none)
-    (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (cache : Simp.Cache := {}):
-    MetaM (SimpResult × Simp.Cache × Simp.CacheHits):=
+    (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (cache : Simp.CacheD := {}):
+    MetaM (SimpResult × Simp.CacheD × Simp.CacheHits):=
   mvarId.withContext do
     let lctx ← getLCtx
     let mut fvarIdsToSimp := Array.mkEmpty lctx.decls.size
@@ -116,8 +116,8 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
 --no discharge? param, since we always want none here
 --TODO can simplifyTarget also be removed and always be set to true?
 def simpStarAtStar (mvarId : MVarId) (ctx : Simp.Context)
-    (simprocs : Simp.SimprocsArray) (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (cache : Simp.Cache := {}):
-    MetaM (SimpResult × Simp.Cache × Simp.CacheHits):=
+    (simprocs : Simp.SimprocsArray) (simplifyTarget : Bool := true) (stats : Simp.Stats := {}) (cache : Simp.CacheD := {}):
+    MetaM (SimpResult × Simp.CacheD × Simp.CacheHits):=
   mvarId.withContext do
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
     Aesop.simpGoal mvarId ctx simprocs none simplifyTarget (<- mvarId.getNondepPropHyps)
@@ -125,8 +125,8 @@ def simpStarAtStar (mvarId : MVarId) (ctx : Simp.Context)
 
 
 def simpAll' (mvarId : MVarId) (ctx : Simp.Context)
-    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) (cache : Simp.Cache := {}) :
-    MetaM (SimpResult × Simp.Cache × Simp.CacheHits) :=
+    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) (cache : Simp.CacheD := {}) :
+    MetaM (SimpResult × Simp.CacheD × Simp.CacheHits) :=
   mvarId.withContext do
     let ctx := { ctx with config.failIfUnchanged := false }
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
