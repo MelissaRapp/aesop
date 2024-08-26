@@ -114,6 +114,7 @@ private partial def loop : M Bool := do
   -- simplify target
   let mvarId := (← get).mvarId
   let cache := (← get).cache
+  trace[Meta.Tactic.simp.negativeCache] "simpAll target {mvarId}"
   let (r, stats, cache') ← simpTarget mvarId (← get).ctx simprocs (stats := { (← get) with }) (cache := cache) (newThms :=(<-get).newThms)
   modify fun s => { s with usedTheorems := stats.usedTheorems, diag := stats.diag, cache := cache', cacheHits := stats.cacheHits }
   match r with
