@@ -460,6 +460,10 @@ theorem X.forall_mem_singleton {p : α → Prop} {a : α} : (∀ x, x ∈ [a] �
   aesop
 
 -- attribute [-simp] forall_mem_append
+set_option trace.Meta.Tactic.simp.negativeCache true in
+--set_option trace.Meta.Tactic.simp true in
+--set_option trace.Meta.Tactic.simp.rewrite true in
+--set_option trace.Meta.Tactic.simp.discharge true in
 theorem X.forall_mem_append {p : α → Prop} {l₁ l₂ : List α} :
     (∀ x, x ∈ l₁ ++ l₂ → p x) ↔ (∀ x, x ∈ l₁ → p x) ∧ (∀ x, x ∈ l₂ → p x) := by
   aesop
@@ -509,7 +513,8 @@ theorem cons_subset_of_subset_of_mem {a : α} {l m : List α}
 theorem append_subset_of_subset_of_subset {l₁ l₂ l : List α} (l₁subl : l₁ ⊆ l) (l₂subl : l₂ ⊆ l) :
   l₁ ++ l₂ ⊆ l := by
   aesop (add norm simp [HasSubset.Subset, List.Subset])
-
+--set_option trace.Meta.Tactic.simp.rewrite true in
+set_option trace.Meta.Tactic.simp.negativeCache true in
 @[simp] theorem append_subset_iff {l₁ l₂ l : List α} :
     l₁ ++ l₂ ⊆ l ↔ l₁ ⊆ l ∧ l₂ ⊆ l := by
   aesop (add norm simp [HasSubset.Subset, List.Subset])
