@@ -90,17 +90,18 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
       stats
 
 def simpAll (mvarId : MVarId) (ctx : Simp.Context)
-    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) :
-    MetaM SimpResult :=
+    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) (negativeCache : Simp.NegativeCache) :
+    MetaM (SimpResult × Simp.NegativeCache) :=
   mvarId.withContext do
-    let ctx := { ctx with config.failIfUnchanged := false }
+    --TODO add aesop option for caching and use it here
+    let ctx := { ctx with config.failIfUnchanged := false, config.negativeCaching := true }
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
-    match ← Lean.Meta.simpAll mvarId ctx simprocs stats with
-    | (none, stats) => return .solved stats.usedTheorems
-    | (some mvarIdNew, stats) =>
+    match ← Lean.Meta.simpAllWithNegativeCache mvarId ctx simprocs stats negativeCache with
+    | (none, stats, negativeCache') => return (.solved stats.usedTheorems, negativeCache')
+    | (some mvarIdNew, stats, negativeCache') =>
       if mvarIdNew == mvarId then
-        return .unchanged
+        return (.unchanged, negativeCache')
       else
-        return .simplified mvarIdNew stats.usedTheorems
+        return (.simplified mvarIdNew stats.usedTheorems, negativeCache')
 
 end Aesop

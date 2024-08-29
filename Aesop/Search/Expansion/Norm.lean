@@ -25,7 +25,7 @@ structure Context where
 
 end NormM
 
-abbrev NormM := ReaderT NormM.Context MetaM
+abbrev NormM := StateT Simp.NegativeCache $ ReaderT NormM.Context MetaM
 
 instance : MonadBacktrack Meta.SavedState NormM where
   saveState := Meta.saveState
@@ -35,7 +35,7 @@ instance : MonadStats NormM where
   readStatsRef := return (← read).statsRef
 
 instance [Queue Q] : MonadLift NormM (SearchM Q) where
-  monadLift x := do x.run { (← read) with }
+  monadLift x := do x.run' (← get).negativeCache { (← read) with }
 
 inductive NormRuleResult
   | succeeded (goal : MVarId) (steps? : Option (Array Script.LazyStep))
@@ -155,7 +155,9 @@ def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
         let (ctx, simprocs) ←
           addLocalRules localRules ctx.toContext ctx.simprocs
             (isSimpAll := true)
-        Aesop.simpAll goal ctx simprocs
+        let (result, negativeCache') := <- Aesop.simpAll goal ctx simprocs (negativeCache := (← get))
+        modify fun _ => negativeCache'
+        pure result
       else
         let (ctx, simprocs) ←
           addLocalRules localRules ctx.toContext ctx.simprocs
@@ -329,7 +331,7 @@ def NormStep.simp (mvars : HashSet MVarId) : NormStep
     return optNormRuleResultToNormSeqResult r
 
 partial def normalizeGoalMVar (goal : MVarId)
-    (mvars : UnorderedArraySet MVarId) : NormM NormSeqResult := do
+    (mvars : UnorderedArraySet MVarId) : NormM (NormSeqResult × Simp.NegativeCache)  := do
   let mvarsHashSet := .ofArray mvars.toArray
   let mut normSteps := #[
     NormStep.runPreSimpRules mvars,
@@ -337,8 +339,9 @@ partial def normalizeGoalMVar (goal : MVarId)
     NormStep.simp mvarsHashSet,
     NormStep.runPostSimpRules mvars
   ]
-  runNormSteps goal normSteps
+  let res := <- runNormSteps goal normSteps
     (by simp (config := { decide := true }) [normSteps])
+  return (res, (<-get))
 
 -- Returns true if the goal was solved by normalisation.
 def normalizeGoalIfNecessary (gref : GoalRef) [Aesop.Queue Q] :
@@ -354,9 +357,10 @@ def normalizeGoalIfNecessary (gref : GoalRef) [Aesop.Queue Q] :
   | .provenByNormalization .. => return true
   | .normal .. => return false
   | .notNormal => pure ()
-  let (normResult, postState) ← controlAt MetaM λ runInBase => do
+  let ((normResult, negativeCache), postState) ← controlAt MetaM λ runInBase => do
     (← gref.get).runMetaMInParentState do
       runInBase $ normalizeGoalMVar preGoal g.mvars
+  setNegativeCache negativeCache
   match normResult with
   | .changed postGoal script? =>
     gref.modify (·.setNormalizationState (.normal postGoal postState script?))

@@ -32,6 +32,7 @@ structure Context where
   deriving Nonempty
 
 structure State (Q) [Aesop.Queue Q] where
+  negativeCache : Simp.NegativeCache := {}
   iteration : Iteration
   queue : Q
   maxRuleApplicationDepthReached : Bool
@@ -119,6 +120,13 @@ def getIteration : SearchM Q Iteration :=
 
 def incrementIteration : SearchM Q Unit :=
   modify λ s => { s with iteration := s.iteration.succ }
+
+def getAndResetNegativeCache : SearchM Q Simp.NegativeCache := do
+  let oldS ← getModify λ s => { s with negativeCache := {} }
+  pure oldS.negativeCache
+
+def setNegativeCache (cache: Simp.NegativeCache) : SearchM Q Unit := do
+  modify λ s => {s with negativeCache := cache}
 
 def popGoal? : SearchM Q (Option GoalRef) := do
   let s ← get
