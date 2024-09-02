@@ -19,6 +19,7 @@ namespace Aesop
 structure NormSimpContext extends Simp.Context where
   enabled : Bool
   useHyps : Bool
+  negativeCaching : Bool
   configStx? : Option Term
   simprocs : Simp.SimprocsArray
   deriving Inhabited
@@ -94,6 +95,7 @@ protected def run (ruleSet : LocalRuleSet) (options : Aesop.Options')
     congrTheorems := ← getSimpCongrTheorems
     simprocs := ruleSet.simprocsArray.map (·.snd)
     configStx? := simpConfigStx?
+    negativeCaching := options.negativeCaching
     enabled := options.enableSimp
     useHyps := options.useSimpAll
   }

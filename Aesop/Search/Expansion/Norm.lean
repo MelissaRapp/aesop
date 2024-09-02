@@ -151,21 +151,25 @@ def SimpResult.toNormRuleResult (originalGoal : MVarId)
 
 def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
     NormM (Option NormRuleResult) := do
-  let ctx := (← read).normSimpContext
+  let normCtx := (← read).normSimpContext
   goal.withContext do
     let preState ← saveState
     let localRules := (← read).ruleSet.localNormSimpRules
     let result ←
-      if ctx.useHyps then
+      if normCtx.useHyps then
         let (ctx, simprocs) ←
-          addLocalRules localRules ctx.toContext ctx.simprocs
+          addLocalRules localRules normCtx.toContext normCtx.simprocs
             (isSimpAll := true)
-        let (result, negativeCache) := <- Aesop.simpAll goal ctx simprocs (negativeCache := ← getCurrentCache)
-        modifyNegativeCachingState fun _ => { negativeCache }
-        pure result
+        if normCtx.negativeCaching then
+         let (result, negativeCache) := ← Aesop.simpAll goal ctx simprocs (negativeCache := ← getCurrentCache) (negativeCaching := true)
+         modifyNegativeCachingState λ _ => { negativeCache }
+         pure result
+        else
+         let (res, _) := ← Aesop.simpAll goal ctx simprocs (negativeCaching := false)
+         pure res
       else
         let (ctx, simprocs) ←
-          addLocalRules localRules ctx.toContext ctx.simprocs
+          addLocalRules localRules normCtx.toContext normCtx.simprocs
             (isSimpAll := false)
         Aesop.simpGoalWithAllHypotheses goal ctx simprocs
 
