@@ -9,6 +9,7 @@ import Aesop.Search.Expansion.Simp
 import Aesop.Search.Queue.Class
 import Aesop.Stats.Basic
 import Aesop.RuleSet
+import Aesop.NegativeCache.Basic
 
 open Lean
 open Lean.Meta
@@ -29,10 +30,10 @@ structure Context where
   normSimpContext : NormSimpContext
   options : Aesop.Options'
   statsRef : StatsRef
+  cacheRef : CacheRef
   deriving Nonempty
 
 structure State (Q) [Aesop.Queue Q] where
-  negativeCache : Simp.NegativeCache := {}
   iteration : Iteration
   queue : Q
   maxRuleApplicationDepthReached : Bool
@@ -67,6 +68,9 @@ instance : MonadReader Context (SearchM Q) :=
 instance : MonadStats (SearchM Q) where
   readStatsRef := return (← read).statsRef
 
+instance : MonadCache (SearchM Q) where
+  readCacheRef := return (← read).cacheRef
+
 instance : MonadLift TreeM (SearchM Q) where
   monadLift x := do
     let ctx := { currentIteration := (← get).iteration }
@@ -93,8 +97,9 @@ protected def run (ruleSet : LocalRuleSet) (options : Aesop.Options')
     enabled := options.enableSimp
     useHyps := options.useSimpAll
   }
+  let cacheRef ← IO.mkRef {negativeCache := {}}
   let statsRef ← IO.mkRef stats
-  let ctx := { ruleSet, options, normSimpContext, statsRef }
+  let ctx := { ruleSet, options, normSimpContext, statsRef, cacheRef }
   let #[rootGoal] := (← t.root.get).goals
     | throwError "aesop: internal error: root mvar cluster does not contain exactly one goal."
   let state := {
@@ -120,13 +125,6 @@ def getIteration : SearchM Q Iteration :=
 
 def incrementIteration : SearchM Q Unit :=
   modify λ s => { s with iteration := s.iteration.succ }
-
-def getAndResetNegativeCache : SearchM Q Simp.NegativeCache := do
-  let oldS ← getModify λ s => { s with negativeCache := {} }
-  pure oldS.negativeCache
-
-def setNegativeCache (cache: Simp.NegativeCache) : SearchM Q Unit := do
-  modify λ s => {s with negativeCache := cache}
 
 def popGoal? : SearchM Q (Option GoalRef) := do
   let s ← get
