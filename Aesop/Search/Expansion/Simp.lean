@@ -90,17 +90,17 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
       stats
 
 def simpAll (mvarId : MVarId) (ctx : Simp.Context)
-    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) (negativeCaching : Bool) (negativeCache : Simp.NegativeCache := {})  :
-    MetaM (SimpResult × Simp.NegativeCache) :=
+    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) (negativeCaching : Bool) (negativeCache : Simp.NegativeCache := {}) (knownHyps : HashSet Origin := {}) :
+    MetaM (SimpResult × Simp.NegativeCache × HashSet Origin) :=
   mvarId.withContext do
     let ctx := { ctx with config.failIfUnchanged := false, config.negativeCaching := negativeCaching }
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
-    match ← Lean.Meta.simpAllWithNegativeCache mvarId ctx simprocs stats negativeCache with
-    | (none, stats, negativeCache') => return (.solved stats.usedTheorems, negativeCache')
-    | (some mvarIdNew, stats, negativeCache') =>
+    match ← Lean.Meta.simpAllWithNegativeCache mvarId ctx simprocs stats negativeCache knownHyps with
+    | (none, stats, negativeCache', knownHyps') => return (.solved stats.usedTheorems, negativeCache', knownHyps')
+    | (some mvarIdNew, stats, negativeCache', knownHyps') =>
       if mvarIdNew == mvarId then
-        return (.unchanged, negativeCache')
+        return (.unchanged, negativeCache', knownHyps')
       else
-        return (.simplified mvarIdNew stats.usedTheorems, negativeCache')
+        return (.simplified mvarIdNew stats.usedTheorems, negativeCache', knownHyps')
 
 end Aesop

@@ -99,7 +99,7 @@ protected def run (ruleSet : LocalRuleSet) (options : Aesop.Options')
     enabled := options.enableSimp
     useHyps := options.useSimpAll
   }
-  let cacheRef ← IO.mkRef {negativeCache := {}}
+  let cacheRef ← IO.mkRef {negativeCache := {}, knownHyps := {}}
   let statsRef ← IO.mkRef stats
   let ctx := { ruleSet, options, normSimpContext, statsRef, cacheRef }
   let #[rootGoal] := (← t.root.get).goals

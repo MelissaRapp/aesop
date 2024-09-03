@@ -8,6 +8,7 @@ namespace Aesop
 
 structure NegativeCachingState where
   negativeCache : Simp.NegativeCache
+  knownHyps : HashSet Origin
   deriving Inhabited
 
 abbrev CacheRef := IO.Ref NegativeCachingState
@@ -25,6 +26,9 @@ variable [MonadCache m]
 
 def getCurrentCache : m Simp.NegativeCache := do
   return (← (← readCacheRef).get).negativeCache
+
+def getCurrentKnownHyps : m (HashSet Origin) := do
+  return (← (← readCacheRef).get).knownHyps
 
 def modifyNegativeCachingState (f : NegativeCachingState → NegativeCachingState) : m Unit := do
     (← readCacheRef).modify f

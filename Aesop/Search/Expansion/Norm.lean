@@ -160,8 +160,8 @@ def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
         let (ctx, simprocs) ←
           addLocalRules localRules normCtx.toContext normCtx.simprocs
             (isSimpAll := true)
-        let (result, negativeCache) := ← Aesop.simpAll goal ctx simprocs (negativeCaching := normCtx.negativeCaching) (negativeCache := ← getCurrentCache)
-        if normCtx.negativeCaching then modifyNegativeCachingState λ _ => { negativeCache }
+        let (result, negativeCache, knownHyps) := ← Aesop.simpAll goal ctx simprocs (negativeCaching := normCtx.negativeCaching) (knownHyps := ← getCurrentKnownHyps) (negativeCache := ← getCurrentCache)
+        if normCtx.negativeCaching then modifyNegativeCachingState λ _ => { negativeCache, knownHyps }
         pure result
       else
         let (ctx, simprocs) ←
