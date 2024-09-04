@@ -11,7 +11,6 @@ import Batteries.Data.List.Lemmas
 import Aesop
 
 set_option aesop.check.script true
-set_option trace.Meta.Tactic.simp.negativeCache true
 -- We use this constant to 'prove' theorems which Aesop can't solve. We don't
 -- use `sorry` because it generates lots of warnings.
 axiom ADMIT : ∀ {α : Sort _}, α
