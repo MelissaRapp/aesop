@@ -28,6 +28,10 @@ def default : StatsReport := λ statsArray => Id.run do
   let mut ruleSelection := 0
   let mut script := 0
   let mut ruleStats : HashMap DisplayRuleName RuleStatsTotals := ∅
+  let mut exprFalseReturns := 0
+  let mut lctxFalseReturns := 0
+  let mut dischFalseReturns := 0
+  let mut trueReturns := 0
   for stats in statsArray do
     let stats := stats.stats
     total := total + stats.total
@@ -37,6 +41,10 @@ def default : StatsReport := λ statsArray => Id.run do
     ruleSelection := ruleSelection + stats.ruleSelection
     script := script + stats.script
     ruleStats := stats.ruleStatsTotals (init := ruleStats)
+    exprFalseReturns := exprFalseReturns+  stats.exprFalseReturns
+    lctxFalseReturns := lctxFalseReturns+ stats.lctxFalseRetuns
+    dischFalseReturns := dischFalseReturns+ stats.dischFalseReturns
+    trueReturns := trueReturns + stats.trueReturns
   let samples := statsArray.size
   f!"Statistics for {statsArray.size} Aesop calls in current and imported modules\n\
      Displaying totals and [averages] in milliseconds\n\
@@ -46,6 +54,11 @@ def default : StatsReport := λ statsArray => Id.run do
      Rule selection:        {fmtTime ruleSelection samples}\n\
      Script generation:     {fmtTime script samples}\n\
      Search:                {fmtTime search samples}\n\
+     Negative Cache False Returns:
+      ExprFalseReturns: {exprFalseReturns}
+      LctxFalseReturns: {lctxFalseReturns}
+      DischFalseReturns: {dischFalseReturns}
+      TrueReturns: {trueReturns}
      Rules:{Std.Format.indentD $ fmtRuleStats $ sortRuleStatsTotals $ ruleStats.toArray}"
 where
   fmtRuleStats (stats : Array (DisplayRuleName × RuleStatsTotals)) :

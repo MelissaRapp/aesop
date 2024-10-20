@@ -75,6 +75,19 @@ def withNormTraceNode (ruleName : DisplayRuleName)
       let emoji := exceptRuleResultToEmoji (optNormRuleResultEmoji ·) r
       return m!"{emoji} {ruleName}"
 
+@[inline, always_inline]
+def withNormTraceNodeSimp (ruleName : DisplayRuleName)
+    (k : NormM (Option NormRuleResult × NcacheStats)) : NormM (Option NormRuleResult × NcacheStats) :=
+  withAesopTraceNode .steps fmt do
+    let (result?, ncStats) ← k
+    if let some newGoal := result?.bind (·.newGoal?) then
+      aesop_trace[steps] newGoal
+    return (result?, ncStats)
+  where
+    fmt (r : Except Exception (Option NormRuleResult × NcacheStats)) : NormM MessageData := do
+      let emoji := exceptRuleResultToEmoji (optNormRuleResultEmoji ·.fst) r
+      return m!"{emoji} {ruleName}"
+
 def runNormRuleTac (rule : NormRule) (input : RuleTacInput) :
     MetaM (Option NormRuleResult) := do
   let preMetaState ← saveState
@@ -150,24 +163,24 @@ def SimpResult.toNormRuleResult (originalGoal : MVarId)
     return some $ .succeeded newGoal #[step]
 
 def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
-    NormM (Option NormRuleResult) := do
+    NormM (Option NormRuleResult × NcacheStats) := do
   let normCtx := (← read).normSimpContext
   goal.withContext do
     let preState ← saveState
     let localRules := (← read).ruleSet.localNormSimpRules
-    let result ←
+    let (result, ncStats) ←
       if normCtx.useHyps then
         let (ctx, simprocs) ←
           addLocalRules localRules normCtx.toContext normCtx.simprocs
             (isSimpAll := true)
-        let (result, negativeCache) := ← Aesop.simpAll goal ctx simprocs (negativeCaching := normCtx.negativeCaching) (negativeCache := ← getCurrentCache)
+        let (result, negativeCache, ncStats ) := ← Aesop.simpAll goal ctx simprocs (negativeCaching := normCtx.negativeCaching) (negativeCache := ← getCurrentCache)
         if normCtx.negativeCaching then modifyNegativeCachingState λ _ => { negativeCache }
-        pure result
+        pure (result, ncStats)
       else
         let (ctx, simprocs) ←
           addLocalRules localRules normCtx.toContext normCtx.simprocs
             (isSimpAll := false)
-        Aesop.simpGoalWithAllHypotheses goal ctx simprocs
+        pure (<- Aesop.simpGoalWithAllHypotheses goal ctx simprocs, {lctxFalseRetuns := 0, exprFalseReturns:= 0, dischFalseReturns := 0, trueReturns := 0})
 
     -- It can happen that simp 'solves' the goal but leaves some mvars
     -- unassigned. In this case, we treat the goal as unchanged.
@@ -188,7 +201,7 @@ def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
         pure result
 
     let postState ← saveState
-    result.toNormRuleResult goal preState postState
+    pure (<- result.toNormRuleResult goal preState postState, ncStats)
 where
   addLocalRules (localRules : Array LocalNormSimpRule) (ctx : Simp.Context)
       (simprocs : Simp.SimprocsArray) (isSimpAll : Bool) :
@@ -198,6 +211,29 @@ where
         elabRuleTermForSimpMetaM goal r.simpTheorem ctx simprocs isSimpAll
       catch _ =>
         return (ctx, simprocs)
+
+@[inline, always_inline]
+def checkSimp' (name : String) (mayCloseGoal : Bool) (goal : MVarId)
+    (x : NormM (Option NormRuleResult × NcacheStats)) : NormM (Option NormRuleResult × NcacheStats) := do
+  if ! (← Check.rules.isEnabled) then
+    x
+  else
+    let preMetaState ← saveState
+    let result? ← x
+    let newGoal? := result?.fst.bind (·.newGoal?)
+    let postMetaState ← saveState
+    let introduced :=
+        (← getIntroducedExprMVars preMetaState postMetaState).filter
+        (some · != newGoal?)
+    unless introduced.isEmpty do throwError
+        "{Check.rules.name}: {name} introduced mvars:{introduced.map (·.name)}"
+    let assigned :=
+        (← getAssignedExprMVars preMetaState postMetaState).filter (· != goal)
+    unless assigned.isEmpty do throwError
+        "{Check.rules.name}: {name} assigned mvars:{introduced.map (·.name)}"
+    if ← pure (! mayCloseGoal && newGoal?.isNone) <&&> goal.isAssigned then
+        throwError "{Check.rules.name}: {name} solved the goal"
+    return result?
 
 @[inline, always_inline]
 def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
@@ -224,14 +260,15 @@ def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
 
 def normSimp (goal : MVarId) (goalMVars : HashSet MVarId) :
     NormM (Option NormRuleResult) := do
-  profilingRule .normSimp (wasSuccessful := λ _ => true) do
-    checkSimp "norm simp" (mayCloseGoal := true) goal do
+  let (result,_) := <- profilingRuleSimp .normSimp (wasSuccessful := λ _ => true) (ncStats :=  λ a => a.snd ) do
+    checkSimp' "norm simp" (mayCloseGoal := true) goal do
       try
-        withNormTraceNode .normSimp do
+        withNormTraceNodeSimp .normSimp do
           withMaxHeartbeats (← read).options.maxSimpHeartbeats do
             normSimpCore goal goalMVars
       catch e =>
         throwError "aesop: error in norm simp: {e.toMessageData}"
+  return result
 
 def normUnfoldCore (goal : MVarId) : NormM (Option NormRuleResult) := do
   let unfoldRules := (← read).ruleSet.unfoldRules

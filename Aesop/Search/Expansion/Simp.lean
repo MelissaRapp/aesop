@@ -7,7 +7,7 @@ import Lean.Elab.Tactic.Simp
 import Aesop.Options
 import Aesop.RuleSet
 import Lean.Elab.Tactic.Simp
-
+import Aesop.Stats.Basic
 open Lean Lean.Meta
 open Lean.Elab.Tactic (mkSimpOnly)
 open Simp (UsedSimps)
@@ -91,16 +91,16 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
 
 def simpAll (mvarId : MVarId) (ctx : Simp.Context)
     (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) (negativeCaching : Bool) (negativeCache : Simp.NegativeCache := {})  :
-    MetaM (SimpResult × Simp.NegativeCache) :=
+    MetaM (SimpResult × Simp.NegativeCache × NcacheStats) :=
   mvarId.withContext do
     let ctx := { ctx with config.failIfUnchanged := false, config.negativeCaching := negativeCaching }
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx
     match ← Lean.Meta.simpAllWithNegativeCache mvarId ctx simprocs stats negativeCache with
-    | (none, stats, negativeCache') => return (.solved stats.usedTheorems, negativeCache')
+    | (none, stats, negativeCache') => return (.solved stats.usedTheorems, negativeCache', {lctxFalseRetuns := stats.lctxFalseRetuns, exprFalseReturns := stats.exprFalseReturns, dischFalseReturns := stats.dischFalseReturns, trueReturns := stats.trueReturns })
     | (some mvarIdNew, stats, negativeCache') =>
       if mvarIdNew == mvarId then
-        return (.unchanged, negativeCache')
+        return (.unchanged, negativeCache', {lctxFalseRetuns := stats.lctxFalseRetuns, exprFalseReturns := stats.exprFalseReturns, dischFalseReturns := stats.dischFalseReturns, trueReturns := stats.trueReturns })
       else
-        return (.simplified mvarIdNew stats.usedTheorems, negativeCache')
+        return (.simplified mvarIdNew stats.usedTheorems, negativeCache', {lctxFalseRetuns := stats.lctxFalseRetuns, exprFalseReturns := stats.exprFalseReturns, dischFalseReturns := stats.dischFalseReturns, trueReturns := stats.trueReturns })
 
 end Aesop
