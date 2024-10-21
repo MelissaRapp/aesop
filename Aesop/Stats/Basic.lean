@@ -9,6 +9,7 @@ import Aesop.Rule.Name
 import Aesop.Tracing
 
 open Lean
+open Lean.Meta.Simp
 
 namespace Aesop
 
@@ -57,18 +58,9 @@ structure Stats where
   ruleSelection : Nanos
   script : Nanos
   scriptGenerated : ScriptGenerated
-  lctxFalseRetuns : Nat
-  exprFalseReturns : Nat
-  dischFalseReturns : Nat
-  trueReturns : Nat
+  negativeCacheStats : NegativeCacheStats
   ruleStats : Array RuleStats
   deriving Inhabited
-
-structure NcacheStats where
- lctxFalseRetuns : Nat
- exprFalseReturns : Nat
- dischFalseReturns : Nat
- trueReturns : Nat
 
 namespace Stats
 
@@ -80,10 +72,7 @@ protected def empty : Stats where
   ruleSelection := 0
   script := 0
   scriptGenerated := .none
-  lctxFalseRetuns := 0
-  exprFalseReturns := 0
-  dischFalseReturns := 0
-  trueReturns := 0
+  negativeCacheStats := {}
   ruleStats := #[]
 
 instance : EmptyCollection Stats :=
@@ -226,12 +215,12 @@ def profilingRule (rule : DisplayRuleName) (wasSuccessful : α → Bool) :
     { stats with ruleStats := stats.ruleStats.push rp }
 
 @[inline, always_inline]
-def profilingRuleSimp (rule : DisplayRuleName) (wasSuccessful : α → Bool) (ncStats:  α → NcacheStats):
+def profilingRuleSimp (rule : DisplayRuleName) (wasSuccessful : α → Bool) (negativeCacheStats:  α → NegativeCacheStats):
     m α → m α :=
   profiling λ stats a elapsed =>
-    let ncStats := ncStats a
+    let negativeCacheStats' := negativeCacheStats a
     let rp := { successful := wasSuccessful a, rule, elapsed }
-    { stats with ruleStats := stats.ruleStats.push rp, lctxFalseRetuns := stats.lctxFalseRetuns + ncStats.lctxFalseRetuns, exprFalseReturns := stats.exprFalseReturns +ncStats.exprFalseReturns, dischFalseReturns := stats.dischFalseReturns + ncStats.dischFalseReturns, trueReturns := stats.trueReturns + ncStats.trueReturns   }
+    { stats with ruleStats := stats.ruleStats.push rp, negativeCacheStats := stats.negativeCacheStats.mergeStats negativeCacheStats' }
 
 def modifyCurrentStats (f : Stats → Stats) : m Unit := do
   if ← isStatsCollectionEnabled then

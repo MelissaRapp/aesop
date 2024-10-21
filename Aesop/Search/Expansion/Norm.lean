@@ -163,12 +163,12 @@ def SimpResult.toNormRuleResult (originalGoal : MVarId)
     return some $ .succeeded newGoal #[step]
 
 def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
-    NormM (Option NormRuleResult × NcacheStats) := do
+    NormM (Option NormRuleResult × Simp.NegativeCacheStats) := do
   let normCtx := (← read).normSimpContext
   goal.withContext do
     let preState ← saveState
     let localRules := (← read).ruleSet.localNormSimpRules
-    let (result, ncStats) ←
+    let (result, negativeCacheStats) ←
       if normCtx.useHyps then
         let (ctx, simprocs) ←
           addLocalRules localRules normCtx.toContext normCtx.simprocs
@@ -180,7 +180,7 @@ def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
         let (ctx, simprocs) ←
           addLocalRules localRules normCtx.toContext normCtx.simprocs
             (isSimpAll := false)
-        pure (<- Aesop.simpGoalWithAllHypotheses goal ctx simprocs, {lctxFalseRetuns := 0, exprFalseReturns:= 0, dischFalseReturns := 0, trueReturns := 0})
+        pure (<- Aesop.simpGoalWithAllHypotheses goal ctx simprocs, {})
 
     -- It can happen that simp 'solves' the goal but leaves some mvars
     -- unassigned. In this case, we treat the goal as unchanged.
@@ -201,7 +201,7 @@ def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
         pure result
 
     let postState ← saveState
-    pure (<- result.toNormRuleResult goal preState postState, ncStats)
+    pure (<- result.toNormRuleResult goal preState postState, negativeCacheStats)
 where
   addLocalRules (localRules : Array LocalNormSimpRule) (ctx : Simp.Context)
       (simprocs : Simp.SimprocsArray) (isSimpAll : Bool) :
@@ -214,7 +214,7 @@ where
 
 @[inline, always_inline]
 def checkSimp' (name : String) (mayCloseGoal : Bool) (goal : MVarId)
-    (x : NormM (Option NormRuleResult × NcacheStats)) : NormM (Option NormRuleResult × NcacheStats) := do
+    (x : NormM (Option NormRuleResult × Simp.NegativeCacheStats)) : NormM (Option NormRuleResult × Simp.NegativeCacheStats) := do
   if ! (← Check.rules.isEnabled) then
     x
   else
@@ -260,7 +260,7 @@ def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
 
 def normSimp (goal : MVarId) (goalMVars : HashSet MVarId) :
     NormM (Option NormRuleResult) := do
-  let (result,_) := <- profilingRuleSimp .normSimp (wasSuccessful := λ _ => true) (ncStats :=  λ a => a.snd ) do
+  let (result,_) := <- profilingRuleSimp .normSimp (wasSuccessful := λ _ => true) (negativeCacheStats :=  λ a => a.snd ) do
     checkSimp' "norm simp" (mayCloseGoal := true) goal do
       try
         withNormTraceNodeSimp .normSimp do
