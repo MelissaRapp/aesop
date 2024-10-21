@@ -52,6 +52,7 @@ def default : StatsReport := λ statsArray => Id.run do
       ExpressionsWithDischExpressions: {negativeCacheStats.exprWithDischExpr}
       ExpressionsWithOutDischExpressions: {negativeCacheStats.exprWithOutDischExpr}
       ExprFalseReturns: {negativeCacheStats.exprFalseReturns}
+      ExprFalseReturns before checkign available disch: {negativeCacheStats.exprFalseReturnsBeforeCheckingAvailableDisch}
       LctxFalseReturns: {negativeCacheStats.lctxFalseReturns}
       DischFalseReturns: {negativeCacheStats.dischFalseReturns}
       TrueReturns: {negativeCacheStats.trueReturns}
