@@ -50,6 +50,7 @@ def default : StatsReport := λ statsArray => Id.run do
      Search:                {fmtTime search samples}\n\
      Negative Cache Stats:
       ExpressionsWithDischExpressions: {negativeCacheStats.exprWithDischExpr}
+      ExpressionsWithOutDischExpressions: {negativeCacheStats.exprWithOutDischExpr}
       ExprFalseReturns: {negativeCacheStats.exprFalseReturns}
       LctxFalseReturns: {negativeCacheStats.lctxFalseReturns}
       DischFalseReturns: {negativeCacheStats.dischFalseReturns}
