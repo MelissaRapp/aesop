@@ -90,8 +90,8 @@ def simpGoalWithAllHypotheses (mvarId : MVarId) (ctx : Simp.Context)
       stats
 
 def simpAll (mvarId : MVarId) (ctx : Simp.Context)
-    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) (negativeCaching : Bool) (negativeCache : Simp.NegativeCache := {})  :
-    MetaM (SimpResult × Simp.NegativeCache) :=
+    (simprocs : Simp.SimprocsArray) (stats : Simp.Stats := {}) (negativeCaching : Bool)
+    (negativeCache : Simp.NegativeCache := {}) : MetaM (SimpResult × Simp.NegativeCache) :=
   mvarId.withContext do
     let ctx := { ctx with config.failIfUnchanged := false, config.negativeCaching := negativeCaching }
     let ctx ← addLetDeclsToSimpTheoremsUnlessZetaDelta ctx

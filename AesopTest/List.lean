@@ -10,6 +10,7 @@ import Batteries.Data.List.Lemmas
 
 import Aesop
 
+
 set_option aesop.check.script true
 -- We use this constant to 'prove' theorems which Aesop can't solve. We don't
 -- use `sorry` because it generates lots of warnings.

@@ -160,7 +160,8 @@ def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
         let (ctx, simprocs) ←
           addLocalRules localRules normCtx.toContext normCtx.simprocs
             (isSimpAll := true)
-        let (result, negativeCache) := ← Aesop.simpAll goal ctx simprocs (negativeCaching := normCtx.negativeCaching) (negativeCache := ← getCurrentCache)
+        let (result, negativeCache) := ← Aesop.simpAll goal ctx simprocs
+          (negativeCaching := normCtx.negativeCaching) (negativeCache := ← getCurrentCache)
         if normCtx.negativeCaching then modifyNegativeCachingState λ _ => { negativeCache }
         pure result
       else
@@ -336,7 +337,7 @@ def NormStep.simp (mvars : HashSet MVarId) : NormStep
     return optNormRuleResultToNormSeqResult r
 
 partial def normalizeGoalMVar (goal : MVarId)
-    (mvars : UnorderedArraySet MVarId) : NormM (NormSeqResult)  := do
+    (mvars : UnorderedArraySet MVarId) : NormM NormSeqResult := do
   let mvarsHashSet := .ofArray mvars.toArray
   let mut normSteps := #[
     NormStep.runPreSimpRules mvars,
