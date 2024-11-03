@@ -5,11 +5,11 @@
    "type": "git",
    "subDir": null,
    "scope": "",
-   "rev": "021e272cb5cdcc82b7e1e760fe915ff2f64169ad",
+   "rev": "31a10a332858d6981dbcf55d54ee51680dd75f18",
    "name": "batteries",
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
    "inherited": false,
-   "configFile": "lakefile.lean"}],
+   "configFile": "lakefile.toml"}],
  "name": "aesop",
  "lakeDir": ".lake"}

@@ -3,11 +3,10 @@ Copyright (c) 2021 Jannis Limperg. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jannis Limperg
 -/
-import Batteries.Data.Array.Basic
 import Batteries.Data.Array.Merge
 import Lean.Message
 
-open Lean
+open Lean Std
 
 namespace Aesop
 
@@ -45,7 +44,7 @@ protected def ofSortedArray (xs : Array α) : UnorderedArraySet α :=
 
 set_option linter.unusedVariables false in
 /-- O(n*log(n)) -/
-protected def ofArray [ord : Ord α] [Inhabited α] (xs : Array α) :
+protected def ofArray [ord : Ord α] (xs : Array α) :
     UnorderedArraySet α :=
   ⟨xs.sortDedup⟩
 
@@ -53,7 +52,7 @@ protected def ofArray [ord : Ord α] [Inhabited α] (xs : Array α) :
 protected def ofArraySlow (xs : Array α) : UnorderedArraySet α :=
   xs.foldl (init := {}) λ s x => s.insert x
 
-protected def ofHashSet [Hashable α] (xs : HashSet α) : UnorderedArraySet α :=
+protected def ofHashSet [Hashable α] (xs : Std.HashSet α) : UnorderedArraySet α :=
   ⟨xs.toArray⟩
 
 protected def ofPersistentHashSet [Hashable α] (xs : PersistentHashSet α) : UnorderedArraySet α :=
@@ -91,7 +90,7 @@ def foldM [Monad m] (f : σ → α → m σ) (init : σ) (s : UnorderedArraySet 
     m σ :=
   s.rep.foldlM f init
 
-instance [Monad m] : ForIn m (UnorderedArraySet α) α where
+instance : ForIn m (UnorderedArraySet α) α where
   forIn s := s.rep.forIn
 
 /-- O(n) -/
@@ -130,9 +129,6 @@ def allM [Monad m] (p : α → m Bool) (s : UnorderedArraySet α) (start := 0)
 def all (p : α → Bool) (s : UnorderedArraySet α) (start := 0) (stop := s.size) :
     Bool :=
   s.rep.all p start stop
-
-instance : BEq (UnorderedArraySet α) where
-  beq s t := s.rep.equalSet t.rep
 
 instance [ToString α] : ToString (UnorderedArraySet α) where
   toString s := toString s.rep

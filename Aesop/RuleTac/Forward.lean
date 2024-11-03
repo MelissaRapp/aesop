@@ -7,7 +7,6 @@ Authors: Jannis Limperg
 import Aesop.RuleTac.Basic
 import Aesop.RuleTac.ElabRuleTerm
 import Batteries.Lean.Meta.UnusedNames
-import Batteries.Lean.Meta.AssertHypotheses
 import Aesop.Script.SpecificTactics
 import Aesop.RuleTac.Forward.Basic
 
@@ -48,15 +47,15 @@ partial def makeForwardHyps (e : Expr) (pat? : Option RulePattern)
     loop (app : Expr) (instMVars : Array MVarId) (immediateMVars : Array MVarId)
         (i : Nat) (proofsAcc : Array (Expr × Nat)) (currentMaxHypDepth : Nat)
         (currentUsedHyps : Array FVarId) (usedHypsAcc : Array FVarId)
-        (proofTypesAcc : HashSet Expr) :
-        MetaM (Array (Expr × Nat) × Array FVarId × HashSet Expr) := do
+        (proofTypesAcc : Std.HashSet Expr) :
+        MetaM (Array (Expr × Nat) × Array FVarId × Std.HashSet Expr) := do
       if h : i < immediateMVars.size then
         let mvarId := immediateMVars.get ⟨i, h⟩
         let type ← mvarId.getType
         (← getLCtx).foldlM (init := (proofsAcc, usedHypsAcc, proofTypesAcc)) λ s@(proofsAcc, usedHypsAcc, proofTypesAcc) ldecl => do
           if ldecl.isImplementationDetail then
             return s
-          let hypDepth := forwardHypData.depths.findD ldecl.fvarId 0
+          let hypDepth := forwardHypData.depths.getD ldecl.fvarId 0
           let currentMaxHypDepth := max currentMaxHypDepth hypDepth
           if let some maxDepth := maxDepth? then
             if currentMaxHypDepth + 1 > maxDepth then
@@ -89,8 +88,8 @@ partial def makeForwardHyps (e : Expr) (pat? : Option RulePattern)
           return (proofsAcc, usedHypsAcc, proofTypesAcc)
 
 def assertForwardHyp (goal : MVarId) (hyp : Hypothesis) (depth : Nat)
-    (md : TransparencyMode) : ScriptM MVarId := do
-  withScriptStep goal (#[·]) (λ _ => true) tacticBuilder do
+    (md : TransparencyMode) : ScriptM (FVarId × MVarId) := do
+  withScriptStep goal (λ (_, g) => #[g]) (λ _ => true) tacticBuilder do
   withTransparency md do
     let hyp := {
       hyp with
@@ -103,14 +102,16 @@ def assertForwardHyp (goal : MVarId) (hyp : Hypothesis) (depth : Nat)
         binderInfo := .default
         kind := .implDetail
     }
-    (·.snd) <$> goal.assertHypotheses' #[hyp, implDetailHyp]
+    let (#[fvarId, _], goal) ← goal.assertHypotheses #[hyp, implDetailHyp]
+      | throwError "aesop: internal error in assertForwardHyp: unexpected number of asserted fvars"
+    return (fvarId, goal)
 where
   tacticBuilder _ := Script.TacticBuilder.assertHypothesis goal hyp md
 
 def applyForwardRule (goal : MVarId) (e : Expr) (pat? : Option RulePattern)
-    (patInsts : HashSet RulePatternInstantiation)
+    (patInsts : Std.HashSet RulePatternInstantiation)
     (immediate : UnorderedArraySet Nat) (clear : Bool)
-    (md : TransparencyMode) (maxDepth? : Option Nat) : ScriptM MVarId :=
+    (md : TransparencyMode) (maxDepth? : Option Nat) : ScriptM Subgoal :=
   withTransparency md $ goal.withContext do
     let forwardHypData ← getForwardHypData
     let mut newHypProofs := #[]
@@ -136,12 +137,23 @@ def applyForwardRule (goal : MVarId) (e : Expr) (pat? : Option RulePattern)
       let type ← inferType proof
       newHyps := newHyps.push ({ value := proof, type, userName }, depth)
     let mut goal := goal
+    let mut addedFVars := ∅
     for (newHyp, depth) in newHyps do
-      goal ← assertForwardHyp goal newHyp depth md
-    if clear then
-      let (goal', _) ← tryClearManyS goal usedHyps
+      let (fvarId, goal') ← assertForwardHyp goal newHyp depth md
       goal := goal'
-    return goal
+      addedFVars := addedFVars.insert fvarId
+    let mut diff := {
+      addedFVars
+      removedFVars := ∅
+      fvarSubst := ∅
+    }
+    if clear then
+      let (goal', removedFVars) ← tryClearManyS goal usedHyps
+      let removedFVars := removedFVars.foldl (init := ∅) λ set fvarId =>
+        set.insert fvarId
+      diff := { diff with removedFVars := removedFVars }
+      goal := goal'
+    return { mvarId := goal, diff }
   where
     err {α} : MetaM α := throwError
       "found no instances of {e} (other than possibly those which had been previously added by forward rules)"

@@ -11,6 +11,8 @@ import Aesop.Search.Expansion.Simp
 import Aesop.Search.RuleSelection
 import Aesop.Search.SearchM
 import Aesop.NegativeCache.Basic
+import Aesop.Tree.State
+import Batteries.Lean.HashSet
 
 open Lean Lean.Meta Aesop.Script
 
@@ -89,7 +91,7 @@ def runNormRuleTac (rule : NormRule) (input : RuleTacInput) :
     restoreState rapp.postState
     if rapp.goals.isEmpty then
       return some $ .proved rapp.scriptSteps?
-    let (#[g]) := rapp.goals
+    let (#[{ mvarId := g, .. }]) := rapp.goals
       | err m!"rule produced more than one subgoal."
     let mvars := .ofArray input.mvars.toArray
     if ← Check.rules.isEnabled then
@@ -127,12 +129,21 @@ def mkNormSimpScriptStep
     (preState postState : Meta.SavedState) (usedTheorems : Simp.UsedSimps) :
     NormM Script.LazyStep := do
   let ctx := (← read).normSimpContext
-  let tacticBuilder :=
+  let simpBuilder :=
+    TacticBuilder.simpAllOrSimpAtStar (simpAll := ctx.useHyps) preGoal
+      ctx.configStx? usedTheorems
+  let simpOnlyBuilder :=
     TacticBuilder.simpAllOrSimpAtStarOnly (simpAll := ctx.useHyps) preGoal
       ctx.configStx? usedTheorems
+  let tacticBuilders :=
+    if (← read).options.useDefaultSimpSet then
+      #[simpOnlyBuilder, simpBuilder]
+    else
+      #[simpOnlyBuilder]
   return {
     postGoals := postGoal?.toArray
-    tacticBuilders := #[tacticBuilder]
+    tacticBuilders
+    tacticBuilders_ne := by simp only [tacticBuilders]; split <;> simp
     preGoal, preState, postState
   }
 
@@ -149,7 +160,7 @@ def SimpResult.toNormRuleResult (originalGoal : MVarId)
       mkNormSimpScriptStep originalGoal newGoal preState postState usedTheorems
     return some $ .succeeded newGoal #[step]
 
-def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
+def normSimpCore (goal : MVarId) (goalMVars : Std.HashSet MVarId) :
     NormM (Option NormRuleResult) := do
   let normCtx := (← read).normSimpContext
   goal.withContext do
@@ -223,7 +234,7 @@ def checkSimp (name : String) (mayCloseGoal : Bool) (goal : MVarId)
         throwError "{Check.rules.name}: {name} solved the goal"
     return result?
 
-def normSimp (goal : MVarId) (goalMVars : HashSet MVarId) :
+def normSimp (goal : MVarId) (goalMVars : Std.HashSet MVarId) :
     NormM (Option NormRuleResult) := do
   profilingRule .normSimp (wasSuccessful := λ _ => true) do
     checkSimp "norm simp" (mayCloseGoal := true) goal do
@@ -328,7 +339,7 @@ def NormStep.unfold : NormStep
     let r := (← normUnfold goal).map (.normUnfold, ·)
     return optNormRuleResultToNormSeqResult r
 
-def NormStep.simp (mvars : HashSet MVarId) : NormStep
+def NormStep.simp (mvars : Std.HashSet MVarId) : NormStep
   | goal, _, _ => do
     if ! (← readThe NormM.Context).normSimpContext.enabled then
       aesop_trace[steps] "norm simp is disabled (simp_options := \{ ..., enabled := false })"

@@ -5,13 +5,10 @@ Authors: Jannis Limperg, Asta Halkjær From
 -/
 
 import Aesop.Nanos
-import Aesop.Util.UnionFind
 import Aesop.Util.UnorderedArraySet
-import Batteries.Data.String
 import Batteries.Lean.Expr
-import Batteries.Lean.Meta.DiscrTree
-import Batteries.Lean.PersistentHashSet
-import Lean.Meta.Tactic.TryThis
+import Batteries.Data.String.Basic
+import Lean
 
 open Lean
 open Lean.Meta Lean.Elab.Tactic
@@ -42,7 +39,7 @@ def time' [Monad m] [MonadLiftT BaseIO m] (x : m Unit) : m Aesop.Nanos := do
 namespace HashSet
 
 -- TODO reuse old hash set instead of building a new one.
-def filter [BEq α] [Hashable α] (hs : HashSet α) (p : α → Bool) : HashSet α :=
+def filter [BEq α] [Hashable α] (hs : Std.HashSet α) (p : α → Bool) : Std.HashSet α :=
   hs.fold (init := ∅) λ hs a => if p a then hs.insert a else hs
 
 end HashSet
@@ -63,6 +60,17 @@ def toArray [BEq α] [Hashable α] (s : PersistentHashSet α) :
   s.fold (init := #[]) λ as a => as.push a
 
 end PersistentHashSet
+
+-- TODO upstream; generalise to {m : Type u → Type v}.
+-- Need to generalise `HashMap.forM` first.
+scoped instance {m : Type u → Type u} [BEq α] [Hashable α] :
+    ForM m (Std.HashMap α β) (α × β) where
+  forM | m, f => m.forM λ a b => f (a, b)
+
+-- TODO upstream; generalise to {m : Type u → Type v}.
+scoped instance {m : Type u → Type u} [BEq α] [Hashable α] :
+    ForIn m (Std.HashMap α β) (α × β) where
+  forIn := ForM.forIn
 
 section DiscrTree
 
@@ -207,7 +215,7 @@ def updateSimpEntryPriority (priority : Nat) (e : SimpEntry) : SimpEntry :=
   | .thm t => .thm { t with priority }
   | .toUnfoldThms .. | .toUnfold .. => e
 
-def getMVarDependencies (e : Expr) : MetaM (HashSet MVarId) := do
+def getMVarDependencies (e : Expr) : MetaM (Std.HashSet MVarId) := do
   let (_, deps) ←
     Lean.MVarId.getMVarDependencies.addMVars (includeDelayed := true) e
     |>.run {}

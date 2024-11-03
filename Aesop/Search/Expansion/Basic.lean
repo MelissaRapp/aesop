@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jannis Limperg
 -/
 
-import Aesop.Rule.Basic
+import Aesop.RuleTac.Basic
 
 open Lean
 open Lean.Meta
@@ -24,7 +24,7 @@ def runRuleTac (tac : RuleTac) (ruleName : RuleName)
   if ← Check.rules.isEnabled then
     if let (Sum.inr ruleOutput) := result then
       ruleOutput.applications.forM λ rapp => do
-        if let (some err) ← rapp.check then
+        if let (some err) ← rapp.check input then
           throwError "{Check.rules.name}: while applying rule {ruleName}: {err}"
   return result
 
