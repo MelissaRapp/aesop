@@ -8,7 +8,8 @@ Authors: Jannis Limperg
 
 import Aesop
 
-
+--set_option trace.aesop true
+set_option trace.Meta.Tactic.simp.negativeCache true
 set_option aesop.check.script true
 -- We use this constant to 'prove' theorems which Aesop can't solve. We don't
 -- use `sorry` because it generates lots of warnings.
@@ -177,7 +178,8 @@ theorem subset_trans {l₁ l₂ l₃ : List α} : l₁ ⊆ l₂ → l₂ ⊆ l�
       assumption
 
 -- END PRELUDE
-
+--TODO is this a good example?
+set_option trace.aesop true in
 instance unique_of_is_empty [IsEmpty α] : Unique (List α) := by
   aesop (add 1% cases List)
 
@@ -287,6 +289,7 @@ theorem X.not_mem_cons_of_ne_of_not_mem {a y : α} {l : List α} : a ≠ y → a
 theorem X.ne_and_not_mem_of_not_mem_cons {a y : α} {l : List α} : a ∉ y::l → a ≠ y ∧ a ∉ l := by
   aesop
 
+--TODO this a good example?
 -- attribute [-simp] mem_map
 @[simp] theorem X.mem_map {f : α → β} {b : β} {l : List α} : b ∈ map f l ↔ ∃ a, a ∈ l ∧ f a = b := by
   induction l <;> aesop
@@ -408,9 +411,12 @@ theorem exists_of_length_succ {n} :
 @[simp] theorem length_injective [Subsingleton α] : Injective (length : List α → Nat) := by
   aesop
 
+--TODO one of these two a good example?
+set_option trace.aesop true in
 theorem length_eq_two {l : List α} : l.length = 2 ↔ ∃ a b, l = [a, b] := by
   aesop (add 50% cases List)
 
+set_option trace.aesop true in
 theorem length_eq_three {l : List α} : l.length = 3 ↔ ∃ a b c, l = [a, b, c] := by
   aesop (add 50% cases List)
 
@@ -502,7 +508,7 @@ theorem cons_subset_of_subset_of_mem {a : α} {l m : List α}
 theorem append_subset_of_subset_of_subset {l₁ l₂ l : List α} (l₁subl : l₁ ⊆ l) (l₂subl : l₂ ⊆ l) :
   l₁ ++ l₂ ⊆ l := by
   aesop (add norm simp [HasSubset.Subset, List.Subset])
-
+set_option trace.Meta.Tactic.simp.negativeCache true in
 @[simp] theorem append_subset_iff {l₁ l₂ l : List α} :
     l₁ ++ l₂ ⊆ l ↔ l₁ ⊆ l ∧ l₂ ⊆ l := by
   aesop (add norm simp [HasSubset.Subset, List.Subset])
