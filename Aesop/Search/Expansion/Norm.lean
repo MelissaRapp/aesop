@@ -173,7 +173,7 @@ def SimpResult.toNormRuleResult (originalGoal : MVarId)
       mkNormSimpScriptStep originalGoal newGoal preState postState usedTheorems
     return some $ .succeeded newGoal #[step]
 
-def normSimpCore (goal : MVarId) (goalMVars : HashSet MVarId) :
+def normSimpCore (goal : MVarId) (goalMVars : Std.HashSet MVarId) :
     NormM (Option NormRuleResult × Simp.NegativeCacheStats) := do
   let normCtx := (← read).normSimpContext
   goal.withContext do
