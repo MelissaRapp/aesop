@@ -3,9 +3,8 @@ Copyright (c) 2022--2024 Jannis Limperg. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jannis Limperg
 -/
-
+import Batteries.Lean.Meta.Basic
 import Aesop.Script.GoalWithMVars
-import Aesop.Util.Basic
 
 open Lean
 
@@ -15,7 +14,7 @@ variable [Monad m] [MonadError m]
 
 structure TacticState where
   visibleGoals : Array GoalWithMVars
-  invisibleGoals : HashSet MVarId
+  invisibleGoals : Std.HashSet MVarId
   deriving Inhabited
 
 namespace TacticState
@@ -63,7 +62,7 @@ def eraseSolvedGoals (ts : TacticState) (preMCtx postMCtx : MetavarContext) :
     TacticState := {
   ts with
   visibleGoals := ts.visibleGoals.filter (! mvarWasSolved ·.goal)
-  invisibleGoals := HashSet.filter ts.invisibleGoals (! mvarWasSolved ·)
+  invisibleGoals := ts.invisibleGoals.filter (! mvarWasSolved ·)
 }
 where
   mvarWasSolved (mvarId : MVarId) : Bool :=

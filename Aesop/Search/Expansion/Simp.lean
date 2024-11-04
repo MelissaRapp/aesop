@@ -8,8 +8,9 @@ import Aesop.Options
 import Aesop.RuleSet
 import Lean.Elab.Tactic.Simp
 import Aesop.Stats.Basic
+import Lean.Meta.Tactic.Simp.SimpAll
+
 open Lean Lean.Meta
-open Lean.Elab.Tactic (mkSimpOnly)
 open Simp (UsedSimps)
 
 namespace Aesop
