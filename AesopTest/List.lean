@@ -554,6 +554,8 @@ attribute [-simp] append_eq_nil
 @[simp] theorem X.nil_eq_append_iff {a b : List α} : [] = a ++ b ↔ a = [] ∧ b = [] := by
   induction a <;> aesop
 
+set_option trace.aesop true in
+--TODO maybe this one would be good?
 -- attribute [-simp] append_eq_cons_iff
 theorem X.append_eq_cons_iff {a b c : List α} {x : α} :
   a ++ b = x :: c ↔ (a = [] ∧ b = x :: c) ∨ (∃a', a = x :: a' ∧ c = a' ++ b) := by
